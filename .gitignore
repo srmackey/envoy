@@ -11,5 +11,6 @@ build/
 .vscode/
 uv.lock
 STATUS.md
+project.yaml
 inbox/
 _system/
