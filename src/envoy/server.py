@@ -17,9 +17,13 @@ from envoy.notes_store import note_remove as note_remove_fn
 from envoy.now import now_view as now_view_fn
 from envoy.status_store import status_get as status_get_fn
 from envoy.status_store import status_put as status_put_fn
+from envoy.syos_store import syos_ack as syos_ack_fn
+from envoy.syos_store import syos_list as syos_list_fn
+from envoy.syos_store import syos_post as syos_post_fn
+from envoy.syos_store import syos_remove as syos_remove_fn
 
 INSTRUCTIONS = """\
-Envoy is the the bulletin bulletin. Files stay the record for MAP.md, NOW.md, local STATUS, and inbox letters. Envoy stores published sitreps and mail notes. Every call sends chair (nexus or a MAP.md name). Session living NOW is now_view. map_list is the roster API. Do not poll sibling STATUS files once this server is live.
+Envoy is the the bulletin bulletin. Files stay the record for MAP.md, NOW.md, local STATUS, and inbox letters. Envoy stores published sitreps, mail notes, and syos notes. Every call sends chair (nexus or a MAP.md name). Session living NOW is now_view. map_list is the roster API. Do not poll sibling STATUS files once this server is live. Syos is a self-addressed brief; now_view does not include it.
 """
 
 mcp = FastMCP("Envoy", instructions=INSTRUCTIONS)
@@ -149,6 +153,34 @@ def now_view(chair: str) -> dict[str, Any]:
     """Read NOW.md. Nexus also receives living NOW: sitreps, reconcile, and open mail."""
     root, home = _ctx()
     return now_view_fn(root, home, chair)
+
+
+@mcp.tool
+def syos_post(chair: str, body: str) -> dict[str, Any]:
+    """Create a syos note. Author and intended_for are forced to chair. Body is the brief."""
+    root, home = _ctx()
+    return syos_post_fn(root, home, chair, body)
+
+
+@mcp.tool
+def syos_list(chair: str) -> dict[str, Any]:
+    """Open syos notes this chair authored (itself only)."""
+    root, home = _ctx()
+    return syos_list_fn(root, home, chair)
+
+
+@mcp.tool
+def syos_ack(chair: str, note_id: str, action: str) -> dict[str, Any]:
+    """Set ack on a syos note this chair can see."""
+    root, home = _ctx()
+    return syos_ack_fn(root, home, chair, note_id, action)
+
+
+@mcp.tool
+def syos_remove(chair: str, note_id: str) -> dict[str, Any]:
+    """Delete a syos note this chair authored."""
+    root, home = _ctx()
+    return syos_remove_fn(root, home, chair, note_id)
 
 
 def run(root: Path, home: Path) -> None:
