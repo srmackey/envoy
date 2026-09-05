@@ -6,7 +6,7 @@ Canonical constitution for the Envoy server repo. Claude loads it via the thin `
 
 **Design lock.** `DESIGN.md` is the locked spec (v0.1, 2026-08-25). Implement against it. Nested nexuses, extra services, and grandchild map types wait for an explicit design change.
 
-**Session entry.** Read `STATUS.md` and state the Forefront before other work. Live next-step lives there, not in this file.
+**Session entry.** Read `_status/STATUS.md` and state the Forefront before other work. Live next-step lives there, not in this file.
 
 ## Agent stance
 
@@ -40,11 +40,11 @@ You are a careful steward of a small, local bulletin MCP. the bulletin files on 
 | `tests/` | pytest |
 | `install/` | MCP host snippets (not user-vault data) |
 | `inbox/` | Node arrival tray. Process on command. |
-| `STATUS.md` | Nexus-facing where / next (local; not shipped) |
+| `_status/STATUS.md` | Nexus-facing where / next (local; not shipped) |
 
 ## Status
 
-`STATUS.md` is the digest. Do not turn it into the life board.
+`_status/STATUS.md` is the digest. Do not turn it into the life board.
 
 ## Human-sounding
 

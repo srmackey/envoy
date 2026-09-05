@@ -128,7 +128,7 @@ Folder for a map `name`: the bulletin root for `nexus`, else `<root>/<name>/`.
 
 Always-present for a subscriber. One document per node. Publish overwrites. Not a queue. Not acked. Not removed after a nexus visit.
 
-**Local file** is the node's record (`STATUS.md`, later `_status/` per owner roots). **Vault document** is that same digest, published. Nexus reads the vault instead of polling the file.
+**Local file** is the node's record (`STATUS.md`, later `_status/` per owner roots). **Vault document** is the published sitrep. For an ordinary chair it is the same digest. For a discreet chair it is a thin sitrep, not a copy of the local file. Nexus reads the vault instead of polling the file.
 
 Published body (plus Envoy provenance: `node`, `version`, `author`, `updated` of this publish):
 
@@ -142,7 +142,10 @@ Published body (plus Envoy provenance: `node`, `version`, `author`, `updated` of
 
 **Store vs pack.** The vault holds the whole digest. Living NOW / session-start pack still presents Forefront, the `repo:` line when present (indented, as today), and uses Where I left off only to reconcile ranked lines. Do not paste Next steps or Open loops onto the pack.
 
-Sensitive nodes stay at existing privacy grain across every published section: one line of substance, no names, quotes, or facts that do not belong on the nexus.
+Two the guidance store subscriber contracts, same Envoy service (`status` in `project.yaml`):
+
+- `methodology/envoy-status`: publish the whole digest.
+- `methodology/envoy-status-discreet`: publish a thin sitrep (one-line Forefront, optional `repo:`, trail only as needed for board reconcile, empty Next steps and Open loops). Local STATUS may stay richer. The article does not name which chairs are sensitive.
 
 A node without `status` in `services` has no vault document. Nexus does not expect one.
 
@@ -208,7 +211,9 @@ What a chair takes on with `status` in `services`. Local files plus publish. Thi
 | Next steps | Ordered working list |
 | Open loops | Waiting-on items, pending decisions |
 
-**Publish.** After a real change to that digest (and on exit from a sitting that changed it): write the local file, then `status_put` the whole digest (`repo:` when present, four sections, provenance). The pack still does not print Next steps or Open loops (§5.1 store vs pack).
+**Publish (ordinary).** `methodology/envoy-status`. After a real change (and on exit from a sitting that changed it): write the local file, then `status_put` the whole digest (`repo:` when present, four sections, provenance). The pack still does not print Next steps or Open loops (§5.1 store vs pack).
+
+**Publish (discreet).** `methodology/envoy-status-discreet`. Write the local file as usual. `status_put` a thin sitrep only: one-line Forefront at nexus grain, `repo:` if present, trail only as needed to reconcile a ranked line (same grain), Next steps and Open loops empty. Do not copy or summarize the local working lists into the vault.
 
 **Do not.** Do not enqueue status events. Do not expect an ack. Do not read sibling STATUS. A nexus that is also a node keeps this same local digest for *itself*, not a dump of its children.
 
@@ -250,7 +255,7 @@ Process on command only (`process the inbox`, or point at a file). Never on sess
 
 Every MCP call sends `chair`: `nexus` or a `MAP.md` `name`.
 
-This is a local single-user contract. Envoy trusts `chair`. Stanzas require a chair to send its own name. Author-remove, list filters, status overwrite, and gate visibility use this field.
+This is a local single-user contract. Envoy trusts `chair`. Articles require a chair to send its own name. Author-remove, list filters, status overwrite, and gate visibility use this field.
 
 Unknown `chair` (not `nexus` and not a map `name`): mutating tools return `ok: false`, `error: unknown_chair`. Read tools that only need `chair` for filtering treat it as a node with no extra rights.
 
@@ -352,17 +357,21 @@ Return shape: success includes `"ok": true`. Failures include `"ok": false` and 
 
 ## 9. Chair contracts (the guidance store)
 
-Patch after this spec is accepted (done 2026-08-25). Do not author until the implementation plan's the guidance store task. Loaded protocol will be stale after rematerialize.
+The article bodies encode §5.3 and §5.4. They are not a second contract. Same Envoy tools. Split 2026-08-25.
 
-The stanza bodies encode §5.3 and §5.4. They are not a second contract.
+**`methodology/envoy-status`:** ordinary status subscriber. Publish the whole digest.
 
-**Shared (`methodology/bulletin`):** status subscriber contract §5.3; mail subscriber contract §5.4; send `chair` as yourself.
+**`methodology/envoy-status-discreet`:** privacy-sensitive status subscriber. Local STATUS may be richer. Publish a thin sitrep only. Does not name which chairs are sensitive; the chair's map attaches this article.
 
-**Nexus (`methodology/nexus-board` + `methodology/nexus-handoff`):** session-start pack uses `now_view` (living NOW, reconcile rule) plus inbox count; run the mail gate (§5.4 nexus extra); do not invent rank; `map_upsert` when the registry changes; `AGENTS.md` points at `MAP.md` for membership.
+**`methodology/envoy-mail`:** mail subscriber. Inbox machine plus `note_post`. Privacy-sensitive chairs keep `why` at summary-plus-pointer grain.
 
-**Node:** on step-in, if opted into status, read own `_status/` digest (today `STATUS.md`) and `now_view`; if opted into mail, honor the inbox machine and send/receive rules. Never write a foreign node inbox. Never read sibling STATUS as an API.
+**Nexus (`methodology/nexus-board` + `methodology/nexus-handoff`):** session-start pack uses `now_view` plus inbox count; run the mail gate; do not invent rank; `map_upsert` when the registry changes; `AGENTS.md` points at `MAP.md` for membership.
 
-Sensitive delivery still requires the operator's confirmation (existing privacy rule). That is a foul or hold until he says proceed.
+**Node:** on step-in, if opted into status, read own local digest and `now_view`; if opted into mail, honor send/receive rules. Never write a foreign node inbox. Never read sibling STATUS as an API.
+
+Sensitive delivery still requires the operator's confirmation. That is a foul or hold until he says proceed.
+
+`methodology/bulletin` is superseded. Do not attach it.
 
 ---
 
@@ -371,7 +380,7 @@ Sensitive delivery still requires the operator's confirmation (existing privacy 
 1. MCP with the tools in §8, vault store for published STATUS and mail notes, `MAP.md` read/write.
 2. Seed `MAP.md` from the current tracked roster. Seed `project.yaml` on each active node from that node's one-line description and service opt-in.
 3. Point nexus `AGENTS.md` at `MAP.md` for membership (constitution edit, the operator already approved the Envoy stand-up; this pointer is the follow-on in the plan).
-4. the guidance store stanza patches in §9, rematerialize, new session.
+4. the guidance store article patches in §9, rematerialize, new session.
 5. Dogfood:
    - Status: node A publishes forefront X; later publishes Z with a trail that accounts for X; nexus `now_view` with NOW still on X resolves, no flag. A third publish to W with no trail mention of a ranked X flags.
    - Mail: one `mail` note plus nexus inbox file, one foul, one deliver.

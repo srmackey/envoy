@@ -10,7 +10,7 @@ build/
 .ruff_cache/
 .vscode/
 uv.lock
-STATUS.md
+_status/
 project.yaml
 inbox/
 _system/
