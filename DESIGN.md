@@ -1,8 +1,8 @@
 # Envoy — Design Spec
 
-**Version 0.1 · locked 2026-08-25**
+**Version 0.2 · amended 2026-09-05** (syos service). v0.1 locked 2026-08-25.
 
-**Status:** accepted 2026-08-25 (the operator). Product name Envoy. Home `bulletin/envoy/`.
+**Status:** accepted 2026-08-25 (the operator). Syos slice accepted 2026-09-05. Product name Envoy. Home `bulletin/envoy/`.
 
 **Provenance:** the bulletin bulletin design, drafted 2026-08-19, recut 2026-08-25 (status shape). Program record: `../docs/superpowers/specs/2026-08-19-domain-prime-bulletin-design.md`. This file is the working lock for implementers.
 
@@ -14,7 +14,7 @@
 
 Envoy is a local MCP server for the bulletin's bulletin: a thin bus plus reader.
 
-It holds membership (`MAP.md` librarian), published status (vault sitreps), and mail notes (bells for inbox letters). Local files stay the record for the map, `NOW.md`, local `STATUS.md`, and inbox letters. Status is not a conversation. Mail is.
+It holds membership (`MAP.md` librarian), published status (vault sitreps), mail notes (bells for inbox letters), and syos notes (self-addressed briefs). Local files stay the record for the map, `NOW.md`, local `STATUS.md`, and inbox letters. Status is not a conversation. Mail is. Syos is a one-shot brief a chair leaves for its next sitting.
 
 It is not the guidance store (situated identity). It is not the workspace memory (dev context). It is not the nexus chair. The nexus chair still gates mail and ranks the board.
 
@@ -36,6 +36,7 @@ Locked 2026-08-19, except where the 2026-08-25 recut replaces them. Recut items 
 10. A node posts a `mail` note after it writes the nexus inbox file. Nexus writes `deliver` files into node inboxes. The handoff file is the wake-up on the node side.
 11. Once this bus is live, nexus awareness no longer reads node STATUS files. Session start is `now_view` plus inbox count. That was the reason `STATUS.md` stayed at project root. Local STATUS may then follow the owner-roots convention (`_status/`), same class as the inbox overlay. The path change is a status-contract patch, not an Envoy change. Until then the record path is `<node>/STATUS.md`.
 12. **Locked 2026-08-25.** Nested nexuses are a lens, not this implementation. A nexus that is also a node still only behaves as a node to its parent. No grandchildren. A parent may not even know a child is itself a nexus. Same node contract at every edge. What a child publishes upward is one sitrep (and mail as itself), never its internals.
+13. **Locked 2026-09-05.** Syos is the third service. Own contract, own tools, own vault subtree. Not a `kind` on mail. The note is the payload (no inbox file). A chair writes only to itself. Nexus does not list other chairs' syos. `now_view` does not include syos. The the guidance store subscriber article is a later slice; this slice is the machine.
 
 Superseded 2026-08-25 (do not implement): status as note kind `done` / `forefront` / `heat` / `rank`; event-driven pin then ack then remove; living NOW built from open status notes; nexus NOW-broadcast as status notes.
 
@@ -52,8 +53,9 @@ Superseded 2026-08-25 (do not implement): status as note kind `done` / `forefron
 | Published status | Envoy vault, one document per status subscriber | That node, via status tools | Owns the store. Overwrites on publish |
 | Mail letters | `inbox/` files | Node → nexus inbox; nexus → node inbox after gate | Notes point at the file |
 | Mail notes | Envoy vault | Chairs via note tools | Owns the store. Queued until processed |
+| Syos notes | Envoy vault | That chair, via syos tools | Owns the store. The note is the brief |
 
-`MAP.md` is a the bulletin file. Envoy does not keep a second copy. Published status and mail notes live in the Envoy vault, not in the the bulletin tree.
+`MAP.md` is a the bulletin file. Envoy does not keep a second copy. Published status, mail notes, and syos notes live in the Envoy vault, not in the the bulletin tree.
 
 ---
 
@@ -107,7 +109,7 @@ services:
 
 `category` is a node fact (for example `family`, `career`, `scripture`, `tooling`, `memory`). Nexus may read it via the Envoy join. It is not a sender field on notes.
 
-`services` is the opt-in list. First two values: `status`, `mail`. Absent list means not subscribed. A later type is another entry, not a change to these two.
+`services` is the opt-in list. Values: `status`, `mail`, `syos`. Absent list means not subscribed. A later type is another entry, not a change to these.
 
 Nexus `AGENTS.md` keeps privacy, routing triggers, and foul rules. It points at `MAP.md` for membership and does not restate the roster.
 
@@ -249,6 +251,44 @@ Process on command only (`process the inbox`, or point at a file). Never on sess
 
 **Nexus extra (gate, not a third service).** List open mail notes. Open the letter. Deliver / hold / foul. the operator decides holds and fouls. Ack after that decision. Sensitive delivery still needs his confirmation.
 
+### 5.5 Syos (self-addressed brief)
+
+Ephemeral notes. The note is the payload. No inbox file. No nexus gate. A chair writes only to itself.
+
+Envoy does not care about the trigger phrase. The subscriber article does. This slice is the machine: post, list, ack, remove.
+
+#### Envelope
+
+| Field | Meaning |
+|---|---|
+| `id` | Envoy-assigned UUID4 hex |
+| `kind` | `syos` |
+| `author` | Forced to `chair` |
+| `created` | ISO datetime UTC |
+| `intended_for` | Forced to `chair`. A chair cannot syos another chair |
+| `body` | The checkable brief. Required. Non-empty after strip |
+| `ack` | Empty until a reader writes it |
+
+`ack` shape: `{ chair, time, action }`. `action` is a short token (`shown`, `checked`, `ignored`, or whatever the article later names). Envoy stores it; it does not enumerate it.
+
+#### Visibility and lifetime
+
+- A chair lists only its own syos notes (`author == chair`).
+- Nexus does not receive other chairs' syos. `now_view` does not include syos. Mail stays mail.
+- Only `author` may remove.
+- Any chair that can see a note may write `ack`.
+- Acked notes may expire 14 days after the ack. Unacked notes do not expire.
+
+### 5.6 Syos subscriber contract
+
+What a chair takes on with `syos` in `services`. Vault only. No the bulletin file.
+
+**Write.** `syos_post` with `body`. `author` and `intended_for` are this chair. A chair not opted in gets `not_subscribed`.
+
+**Read.** `syos_list` this chair's open notes. Present them. Do not verify and do not continue the work because a note arrived. the operator chooses.
+
+The the guidance store article that encodes this contract is a later slice. Until it exists, these tools are the contract.
+
 ---
 
 ## 6. Chair identity
@@ -324,6 +364,16 @@ Nodes see NOW through `now_view`. They do not read sibling STATUS. "All nodes ca
 
 `now_view` for a nexus caller includes `always_on_missing`: names in `{family, career}` with no This-week line. It does not invent lines.
 
+### 7.5 Syos
+
+1. A subscribed chair posts a syos note with `body`.
+2. The sitting stops if its loaded snapshot is already stale.
+3. A later sitting in that chair lists open syos notes and presents them.
+4. the operator chooses to act, ack, or ignore. The agent does not act because the note arrived.
+5. Author removes when done, or an acked note expires after 14 days.
+
+This loop does not touch inbox files and does not go through the nexus gate.
+
 ---
 
 ## 8. MCP tools
@@ -339,13 +389,17 @@ Nodes see NOW through `now_view`. They do not read sibling STATUS. "All nodes ca
 | `note_ack` | any that can see the note | Set `ack` |
 | `note_gate` | nexus | Set `gate` / `gate_note` on a `mail` note |
 | `note_remove` | author | Delete the note |
-| `now_view` | any | Read `NOW.md`. Nexus caller also receives published STATUS (reconciled) and open mail notes (living NOW). Node caller receives `NOW.md` |
+| `now_view` | any | Read `NOW.md`. Nexus caller also receives published STATUS (reconciled) and open mail notes (living NOW). Node caller receives `NOW.md`. Does not include syos |
+| `syos_post` | syos subscriber | Create a `syos` note. `author` and `intended_for` are forced to `chair`. `body` is the brief |
+| `syos_list` | any | Open syos notes this chair authored (itself only) |
+| `syos_ack` | any that can see the note | Set `ack` |
+| `syos_remove` | author | Delete the note |
 
 Unknown `intended_for` (not a map `name` and not `nexus`): accept the note, nexus treats it as `foul` when gated.
 
 `note_post` of `mail` does not require the inbox file to exist at post time. Nexus gate treats a missing file as `foul`.
 
-`status_put` from a chair not opted into `status` is an error. `note_post` from a chair not opted into `mail` is an error.
+`status_put` from a chair not opted into `status` is an error. `note_post` from a chair not opted into `mail` is an error. `syos_post` from a chair not opted into `syos` is an error.
 
 `map_upsert` from a non-nexus chair is `ok: false`, `error: nexus_only`. Same for `note_gate`.
 
@@ -357,13 +411,15 @@ Return shape: success includes `"ok": true`. Failures include `"ok": false` and 
 
 ## 9. Chair contracts (the guidance store)
 
-The article bodies encode §5.3 and §5.4. They are not a second contract. Same Envoy tools. Split 2026-08-25.
+The article bodies encode §5.3, §5.4, and (later) §5.6. They are not a second contract. Same Envoy tools. Split 2026-08-25. Syos article is a later slice.
 
 **`methodology/envoy-status`:** ordinary status subscriber. Publish the whole digest.
 
 **`methodology/envoy-status-discreet`:** privacy-sensitive status subscriber. Local STATUS may be richer. Publish a thin sitrep only. Does not name which chairs are sensitive; the chair's map attaches this article.
 
 **`methodology/envoy-mail`:** mail subscriber. Inbox machine plus `note_post`. Privacy-sensitive chairs keep `why` at summary-plus-pointer grain.
+
+**`methodology/envoy-syos`:** not in this slice. The tools in §8 are the machine. The article is a later sitting.
 
 **Nexus (`methodology/nexus-board` + `methodology/nexus-handoff`):** session-start pack uses `now_view` plus inbox count; run the mail gate; do not invent rank; `map_upsert` when the registry changes; `AGENTS.md` points at `MAP.md` for membership.
 
@@ -401,9 +457,10 @@ Closed 2026-08-25. These were open on accept as details, not design forks.
 
 1. **Home.** Code lives at `bulletin/envoy/`. Own git repo when the scaffold task inits it. Not inside the nexus constitution tree as a library.
 2. **the bulletin root.** `ENVOY_ROOT` environment variable, or CLI `--root`. Required. No parent-directory walk (sources/live must not guess). Tests pass an explicit tmp root.
-3. **Vault.** `ENVOY_HOME` environment variable, or CLI `--vault`. Default `~/.envoy`. JSON files, two subtrees:
+3. **Vault.** `ENVOY_HOME` environment variable, or CLI `--vault`. Default `~/.envoy`. JSON files, three subtrees:
    - `status/<name>.json` — one document per status subscriber
    - `mail/<id>.json` — one file per mail note
+   - `syos/<id>.json` — one file per syos note
 4. **`MAP.md` format.** YAML, fields as §4.1. Not Markdown-with-frontmatter in v0.1.
 5. **`version` on status.** Envoy assigns an integer. First `status_put` for a node is `1`. Each overwrite adds 1. Chairs do not send `version`.
 6. **Note ids.** UUID4 hex, no dashes.
@@ -414,11 +471,12 @@ Closed 2026-08-25. These were open on accept as details, not design forks.
 
 ---
 
-## 13. Out of scope for v0.1
+## 13. Out of scope for v0.2
 
 - Nested nexuses and grandchild map types
-- Owner-roots path move (`STATUS.md` → `_status/`, `inbox/` → `_inbox/`)
-- Extra services beyond status and mail
+- Owner-roots path move (`inbox/` → `_inbox/`)
+- Extra services beyond status, mail, and syos
 - Filtering or redacting published bodies
 - Remote multi-user auth (chair is trusted)
 - Installing Envoy as an the guidance store pack
+- The the guidance store subscriber article for syos (`methodology/envoy-syos`)
