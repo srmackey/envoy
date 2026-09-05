@@ -36,7 +36,7 @@ Locked 2026-08-19, except where the 2026-08-25 recut replaces them. Recut items 
 10. A node posts a `mail` note after it writes the nexus inbox file. Nexus writes `deliver` files into node inboxes. The handoff file is the wake-up on the node side.
 11. Once this bus is live, nexus awareness no longer reads node STATUS files. Session start is `now_view` plus inbox count. That was the reason `STATUS.md` stayed at project root. Local STATUS may then follow the owner-roots convention (`_status/`), same class as the inbox overlay. The path change is a status-contract patch, not an Envoy change. Until then the record path is `<node>/STATUS.md`.
 12. **Locked 2026-08-25.** Nested nexuses are a lens, not this implementation. A nexus that is also a node still only behaves as a node to its parent. No grandchildren. A parent may not even know a child is itself a nexus. Same node contract at every edge. What a child publishes upward is one sitrep (and mail as itself), never its internals.
-13. **Locked 2026-09-05.** Syos is the third service. Own contract, own tools, own vault subtree. Not a `kind` on mail. The note is the payload (no inbox file). A chair writes only to itself. Nexus does not list other chairs' syos. `now_view` does not include syos. The the guidance store subscriber article is a later slice; this slice is the machine.
+13. **Locked 2026-09-05.** Syos is the third service. Own contract, own tools, own vault subtree. Not a `kind` on mail. The note is the payload (no inbox file). A chair writes only to itself. Nexus does not list other chairs' syos. `now_view` does not include syos. The machine is the tools in §8. The chair contract is `methodology/envoy-syos`.
 
 Superseded 2026-08-25 (do not implement): status as note kind `done` / `forefront` / `heat` / `rank`; event-driven pin then ack then remove; living NOW built from open status notes; nexus NOW-broadcast as status notes.
 
@@ -287,7 +287,7 @@ What a chair takes on with `syos` in `services`. Vault only. No the bulletin fil
 
 **Read.** `syos_list` this chair's open notes. Present them. Do not verify and do not continue the work because a note arrived. the operator chooses.
 
-The the guidance store article that encodes this contract is a later slice. Until it exists, these tools are the contract.
+The the guidance store article that encodes this contract is `methodology/envoy-syos`.
 
 ---
 
@@ -411,7 +411,7 @@ Return shape: success includes `"ok": true`. Failures include `"ok": false` and 
 
 ## 9. Chair contracts (the guidance store)
 
-The article bodies encode §5.3, §5.4, and (later) §5.6. They are not a second contract. Same Envoy tools. Split 2026-08-25. Syos article is a later slice.
+The article bodies encode §5.3, §5.4, and §5.6. They are not a second contract. Same Envoy tools. Split 2026-08-25.
 
 **`methodology/envoy-status`:** ordinary status subscriber. Publish the whole digest.
 
@@ -419,11 +419,11 @@ The article bodies encode §5.3, §5.4, and (later) §5.6. They are not a second
 
 **`methodology/envoy-mail`:** mail subscriber. Inbox machine plus `note_post`. Privacy-sensitive chairs keep `why` at summary-plus-pointer grain.
 
-**`methodology/envoy-syos`:** not in this slice. The tools in §8 are the machine. The article is a later sitting.
+**`methodology/envoy-syos`:** syos subscriber. Self-addressed brief, no inbox file, no nexus gate. Write on the trigger phrase; read on session start and step-in; present and wait.
 
 **Nexus (`methodology/nexus-board` + `methodology/nexus-handoff`):** session-start pack uses `now_view` plus inbox count; run the mail gate; do not invent rank; `map_upsert` when the registry changes; `AGENTS.md` points at `MAP.md` for membership.
 
-**Node:** on step-in, if opted into status, read own local digest and `now_view`; if opted into mail, honor send/receive rules. Never write a foreign node inbox. Never read sibling STATUS as an API.
+**Node:** on step-in, if opted into status, read own local digest and `now_view`; if opted into mail, honor send/receive rules; if opted into syos, list open syos notes and present them, then wait. Never write a foreign node inbox. Never read sibling STATUS as an API.
 
 Sensitive delivery still requires the operator's confirmation. That is a foul or hold until he says proceed.
 
@@ -479,4 +479,3 @@ Closed 2026-08-25. These were open on accept as details, not design forks.
 - Filtering or redacting published bodies
 - Remote multi-user auth (chair is trusted)
 - Installing Envoy as an the guidance store pack
-- The the guidance store subscriber article for syos (`methodology/envoy-syos`)
