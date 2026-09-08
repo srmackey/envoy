@@ -2,11 +2,7 @@
 
 **Version 0.2 · amended 2026-09-05** (syos service). v0.1 locked 2026-08-25.
 
-**Status:** accepted 2026-08-25 (the operator). Syos slice accepted 2026-09-05. Product name Envoy. Home `bulletin/envoy/`.
-
-**Provenance:** the bulletin bulletin design, drafted 2026-08-19, recut 2026-08-25 (status shape). Program record: `../docs/superpowers/specs/2026-08-19-domain-prime-bulletin-design.md`. This file is the working lock for implementers.
-
-**First slice plan:** `../docs/superpowers/plans/2026-08-25-envoy-phase-1.md`.
+**Status:** accepted 2026-08-25 (the operator). Syos slice accepted 2026-09-05. Product name Envoy.
 
 ---
 
@@ -136,7 +132,7 @@ Published body (plus Envoy provenance: `node`, `version`, `author`, `updated` of
 
 | Field | Meaning |
 |---|---|
-| `repo` | If present on the local file, directly under `updated:`. Format in `methodology/repo-ritual`. Do not invent. Omit when the node has no `repo:` line |
+| `repo` | If present on the local file, directly under `updated:`. Same format as the local `repo:` line (§5.3). Do not invent. Omit when the node has no `repo:` line |
 | Forefront | One line |
 | Where I left off | 2–4 lines. The trail for reconcile |
 | Next steps | Ordered working list |
@@ -191,7 +187,7 @@ Envoy returns `gate` and `gate_note` only to a nexus caller. A node listing its 
 #### Visibility and lifetime
 
 - Nexus may list every open mail note.
-- A node may list mail notes it authored.
+- A node may list mail notes it authored, and mail notes where `intended_for` is that node.
 - Only `author` may remove.
 - Any chair that can see a note may write `ack`.
 - Acked notes may expire 14 days after the ack. Unacked notes and notes with `gate: foul` or `gate: hold` do not expire.
@@ -223,7 +219,7 @@ What a chair takes on with `status` in `services`. Local files plus publish. Thi
 
 ### 5.4 Mail subscriber contract
 
-What a chair takes on with `mail` in `services`. The inbox machine plus the note queue. Inbox spec `../docs/superpowers/specs/2026-08-17-hub-spoke-inbox-design.md` §5 is the letter format and process ritual. This section is the service wrapping it.
+What a chair takes on with `mail` in `services`. The inbox machine plus the note queue. Letter format and process ritual are below.
 
 **Local home.** Inbox overlay. Live path is `inbox/`. Intended owner-root name is `_inbox/`; that rename is a separate explicit move, not this slice. The machine below is the contract regardless of folder name.
 
@@ -335,7 +331,7 @@ This is conservative. The chair may still explain a flag. Envoy does not infer s
 
 ### 7.2 Mail, node → nexus
 
-1. The node writes a handoff file into `bulletin/inbox/` (schema already in the inbox spec §5.3, `kind: export`).
+1. The node writes a handoff file into `bulletin/inbox/` (`kind: export`).
 2. The node posts a `mail` note: `intended_for`, `inbox` path, `why`.
 3. Nexus lists `mail` notes, opens the letter, looks up the destination (`MAP.md` + `project.yaml` + `AGENTS.md` gate).
 4. Nexus chooses:
@@ -435,7 +431,7 @@ Sensitive delivery still requires the operator's confirmation. That is a foul or
 
 1. MCP with the tools in §8, vault store for published STATUS and mail notes, `MAP.md` read/write.
 2. Seed `MAP.md` from the current tracked roster. Seed `project.yaml` on each active node from that node's one-line description and service opt-in.
-3. Point nexus `AGENTS.md` at `MAP.md` for membership (constitution edit, the operator already approved the Envoy stand-up; this pointer is the follow-on in the plan).
+3. Point nexus `AGENTS.md` at `MAP.md` for membership.
 4. the guidance store article patches in §9, rematerialize, new session.
 5. Dogfood:
    - Status: node A publishes forefront X; later publishes Z with a trail that accounts for X; nexus `now_view` with NOW still on X resolves, no flag. A third publish to W with no trail mention of a ranked X flags.
@@ -455,7 +451,7 @@ Do not implement nested nexuses in the first slice. Do not add a grandchild type
 
 Closed 2026-08-25. These were open on accept as details, not design forks.
 
-1. **Home.** Code lives at `bulletin/envoy/`. Own git repo when the scaffold task inits it. Not inside the nexus constitution tree as a library.
+1. **Home.** This product tree is its own git repo. the bulletin root is supplied at runtime (`ENVOY_ROOT` / `--root`), not by nesting this tree under another project.
 2. **the bulletin root.** `ENVOY_ROOT` environment variable, or CLI `--root`. Required. No parent-directory walk (sources/live must not guess). Tests pass an explicit tmp root.
 3. **Vault.** `ENVOY_HOME` environment variable, or CLI `--vault`. Default `~/.envoy`. JSON files, three subtrees:
    - `status/<name>.json` — one document per status subscriber

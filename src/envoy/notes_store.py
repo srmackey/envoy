@@ -44,7 +44,11 @@ def _save(home: Path, note: dict[str, Any]) -> None:
 
 
 def _can_see(chair: str, note: dict[str, Any]) -> bool:
-    return chair == "nexus" or note.get("author") == chair
+    return (
+        chair == "nexus"
+        or note.get("author") == chair
+        or note.get("intended_for") == chair
+    )
 
 
 def _public(note: dict[str, Any], chair: str) -> dict[str, Any]:

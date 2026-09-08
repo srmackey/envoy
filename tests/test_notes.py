@@ -59,6 +59,28 @@ def test_note_post_and_visibility(root: Path, home: Path) -> None:
     assert "gate" not in harbor_list["notes"][0]
 
 
+def test_intended_for_can_list_and_ack(root: Path, home: Path) -> None:
+    _seed(root)
+    posted = note_post(
+        root, home, chair="nexus",
+        intended_for="harbor", inbox="harbor/inbox/letter.md", why="deliver catalog",
+    )
+    assert posted["ok"] is True
+    note_id = posted["note"]["id"]
+    harbor_list = note_list(root, home, chair="harbor")
+    assert len(harbor_list["notes"]) == 1
+    assert harbor_list["notes"][0]["id"] == note_id
+    assert "gate" not in harbor_list["notes"][0]
+    river_list = note_list(root, home, chair="river")
+    assert river_list["notes"] == []
+    denied = note_ack(root, home, chair="river", note_id=note_id, action="shown")
+    assert denied["error"] == "forbidden"
+    acked = note_ack(root, home, chair="harbor", note_id=note_id, action="shown")
+    assert acked["ok"] is True
+    assert acked["note"]["ack"]["chair"] == "harbor"
+    assert acked["note"]["ack"]["action"] == "shown"
+
+
 def test_note_gate_nexus_only_and_stripped(root: Path, home: Path) -> None:
     _seed(root)
     posted = note_post(
