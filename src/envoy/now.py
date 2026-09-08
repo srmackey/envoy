@@ -57,10 +57,14 @@ def _state(board_text: str, document: dict[str, Any] | None) -> tuple[str, str |
         return "unaccounted", None
     forefront = str(document.get("forefront") or "")
     trail = " ".join(str(part) for part in (document.get("where_i_left_off") or []))
-    if _norm(forefront) == _norm(board_text):
+    repo = str(document.get("repo") or "")
+    board = _norm(board_text)
+    if _norm(forefront) == board:
         return "current", forefront
-    if _norm(board_text) and _norm(board_text) in _norm(trail):
+    if board and board in _norm(trail):
         return "accounted", forefront
+    if board and board in _norm(repo):
+        return "satisfied", forefront
     return "unaccounted", forefront
 
 

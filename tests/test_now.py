@@ -102,3 +102,19 @@ def test_now_view_current_when_forefront_matches(root: Path, home: Path) -> None
     got = now_view(root, home, chair="nexus")
     row = next(r for r in got["reconcile"] if r["text"] == "Chart the harbor")
     assert row["state"] == "current"
+
+
+def test_now_view_satisfied_when_board_text_in_repo(root: Path, home: Path) -> None:
+    _seed(root)
+    status_put(
+        root, home, chair="harbor",
+        forefront="Moor the river",
+        where_i_left_off=["worked on docks"],
+        next_steps=[],
+        open_loops=[],
+        repo="main · clean · Chart the harbor pushed",
+    )
+    got = now_view(root, home, chair="nexus")
+    row = next(r for r in got["reconcile"] if r["text"] == "Chart the harbor")
+    assert row["state"] == "satisfied"
+    assert row["forefront"] == "Moor the river"

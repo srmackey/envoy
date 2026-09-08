@@ -319,16 +319,17 @@ Absence of X from forefront is not enough. Forefront is only "pick this up next.
 
 Several publishes in one node sitting: only the last document is there. The trail on that document is the roll-up, not a replay of every intermediate forefront.
 
-**Mechanical rule for `now_view` (locked 2026-08-25):**
+**Mechanical rule for `now_view` (locked 2026-08-25; `satisfied` / `repo:` added 2026-09-08):**
 
 Normalize whitespace. Board substance is the one-line text of the ranked item (not the due/node suffix).
 
 - `current` if A's published Forefront equals the board substance.
 - `accounted` if not current and the board substance appears as a substring of the joined Where I left off text.
+- `satisfied` if not current or accounted and the board substance appears as a substring of the published `repo:` line. Not a flag.
 - `unaccounted` otherwise (flag).
 - Lines with `node: none` are not reconciled against a child sitrep.
 
-This is conservative. The chair may still explain a flag. Envoy does not infer synonyms.
+This is conservative. The chair may still explain a flag. Envoy does not infer synonyms. `no_trail`, `stale_trail`, and `drifted` wait for a later pass.
 
 ### 7.2 Mail, node → nexus
 
