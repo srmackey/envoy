@@ -54,7 +54,7 @@ def parse_now(text: str) -> dict[str, Any]:
 
 def _state(board_text: str, document: dict[str, Any] | None) -> tuple[str, str | None]:
     if document is None:
-        return "unaccounted", None
+        return "no_trail", None
     forefront = str(document.get("forefront") or "")
     trail = " ".join(str(part) for part in (document.get("where_i_left_off") or []))
     repo = str(document.get("repo") or "")

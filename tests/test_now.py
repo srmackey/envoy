@@ -67,13 +67,21 @@ def test_now_view_accounted_and_unaccounted(root: Path, home: Path) -> None:
     by_text = {row["text"]: row for row in got["reconcile"]}
     assert by_text["Chart the harbor"]["state"] == "accounted"
     assert by_text["Chart the harbor"]["forefront"] == "Moor the river"
-    assert by_text["Lane 1 packs"]["state"] == "unaccounted"
+    assert by_text["Lane 1 packs"]["state"] == "no_trail"
     assert by_text["Lane 1 packs"]["forefront"] is None
     fronts = {row["node"]: row for row in got["forefronts"]}
     assert "next_steps" not in fronts["harbor"]
     assert fronts["harbor"]["forefront"] == "Moor the river"
     assert "family" in got["always_on_missing"]
     assert "career" not in got["always_on_missing"]
+
+
+def test_now_view_no_trail_when_no_sitrep(root: Path, home: Path) -> None:
+    _seed(root)
+    got = now_view(root, home, chair="nexus")
+    row = next(r for r in got["reconcile"] if r["text"] == "Lane 1 packs")
+    assert row["state"] == "no_trail"
+    assert row["forefront"] is None
 
 
 def test_now_view_unaccounted_when_trail_silent(root: Path, home: Path) -> None:

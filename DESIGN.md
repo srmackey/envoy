@@ -1,6 +1,6 @@
 # Envoy — Design Spec
 
-**Version 0.2 · amended 2026-09-08** (mail visibility, outstanding notice, list auto-ack). Syos amended 2026-09-05. v0.1 locked 2026-08-25.
+**Version 0.2 · amended 2026-09-08** (mail visibility, outstanding notice, list auto-ack; reconcile `satisfied` / `no_trail`). Syos amended 2026-09-05. v0.1 locked 2026-08-25.
 
 **Status:** accepted 2026-08-25 (the operator). Syos slice accepted 2026-09-05. Mail visibility and outstanding notice accepted 2026-09-08. Product name Envoy.
 
@@ -326,10 +326,11 @@ Normalize whitespace. Board substance is the one-line text of the ranked item (n
 - `current` if A's published Forefront equals the board substance.
 - `accounted` if not current and the board substance appears as a substring of the joined Where I left off text.
 - `satisfied` if not current or accounted and the board substance appears as a substring of the published `repo:` line. Not a flag.
+- `no_trail` if A has no published sitrep (flag: setup gap, not drift).
 - `unaccounted` otherwise (flag).
 - Lines with `node: none` are not reconciled against a child sitrep.
 
-This is conservative. The chair may still explain a flag. Envoy does not infer synonyms. `no_trail`, `stale_trail`, and `drifted` wait for a later pass.
+This is conservative. The chair may still explain a flag. Envoy does not infer synonyms. `stale_trail` and `drifted` wait; leftover mismatch stays `unaccounted`.
 
 ### 7.2 Mail, node → nexus
 
@@ -352,7 +353,7 @@ A nexus query, not a stored object:
 1. Read `NOW.md`.
 2. Read published STATUS for children opted into `status`. Reconcile per §7.1.
 3. List open `mail` notes.
-4. Present the durable week, then resolved ranked lines (not flags), unaccounted disagreements (flags), current Forefronts with `repo:` when present, and waiting mail. Do not paste Next steps or Open loops. Where I left off is for reconcile, not a second board.
+4. Present the durable week, then resolved ranked lines (not flags), `no_trail` and `unaccounted` (flags), current Forefronts with `repo:` when present, and waiting mail. Do not paste Next steps or Open loops. Where I left off is for reconcile, not a second board.
 
 Nodes see NOW through `now_view`. They do not read sibling STATUS. "All nodes can see NOW" is the downward read. Aggregation of children is a nexus sitting.
 
