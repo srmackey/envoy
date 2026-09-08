@@ -14,6 +14,7 @@ from envoy.notes_store import note_gate as note_gate_fn
 from envoy.notes_store import note_list as note_list_fn
 from envoy.notes_store import note_post as note_post_fn
 from envoy.notes_store import note_remove as note_remove_fn
+from envoy.notes_store import with_mail_notice
 from envoy.now import now_view as now_view_fn
 from envoy.status_store import status_get as status_get_fn
 from envoy.status_store import status_put as status_put_fn
@@ -44,11 +45,16 @@ def _ctx() -> tuple[Path, Path]:
     return _root, _home
 
 
+def _result(chair: str, payload: dict[str, Any]) -> dict[str, Any]:
+    _, home = _ctx()
+    return with_mail_notice(payload, home, chair)
+
+
 @mcp.tool
 def map_list(chair: str) -> dict[str, Any]:
     """Read MAP.md. Nexus caller gets project.yaml join."""
     root, _ = _ctx()
-    return map_list_fn(root, chair)
+    return _result(chair, map_list_fn(root, chair))
 
 
 @mcp.tool
@@ -61,15 +67,18 @@ def map_upsert(
 ) -> dict[str, Any]:
     """Create or replace one map row and write MAP.md. Nexus only."""
     root, _ = _ctx()
-    return map_upsert_fn(
-        root,
+    return _result(
         chair,
-        {
-            "name": name,
-            "inbox": inbox,
-            "description": description,
-            "status": status,
-        },
+        map_upsert_fn(
+            root,
+            chair,
+            {
+                "name": name,
+                "inbox": inbox,
+                "description": description,
+                "status": status,
+            },
+        ),
     )
 
 
@@ -84,15 +93,18 @@ def status_put(
 ) -> dict[str, Any]:
     """Publish this chair's sitrep. Overwrites that node's vault document."""
     root, home = _ctx()
-    return status_put_fn(
-        root,
-        home,
+    return _result(
         chair,
-        forefront,
-        where_i_left_off,
-        next_steps,
-        open_loops,
-        repo=repo,
+        status_put_fn(
+            root,
+            home,
+            chair,
+            forefront,
+            where_i_left_off,
+            next_steps,
+            open_loops,
+            repo=repo,
+        ),
     )
 
 
@@ -100,7 +112,7 @@ def status_put(
 def status_get(chair: str, node: str | None = None) -> dict[str, Any]:
     """Read a published sitrep. A node reads its own. Nexus reads opted-in children."""
     root, home = _ctx()
-    return status_get_fn(root, home, chair, node=node)
+    return _result(chair, status_get_fn(root, home, chair, node=node))
 
 
 @mcp.tool
@@ -112,21 +124,21 @@ def note_post(
 ) -> dict[str, Any]:
     """Create a mail note. Author is forced to chair."""
     root, home = _ctx()
-    return note_post_fn(root, home, chair, intended_for, inbox, why)
+    return _result(chair, note_post_fn(root, home, chair, intended_for, inbox, why))
 
 
 @mcp.tool
 def note_list(chair: str) -> dict[str, Any]:
     """Open mail notes visible to chair."""
     root, home = _ctx()
-    return note_list_fn(root, home, chair)
+    return _result(chair, note_list_fn(root, home, chair))
 
 
 @mcp.tool
 def note_ack(chair: str, note_id: str, action: str) -> dict[str, Any]:
     """Set ack on a mail note this chair can see."""
     root, home = _ctx()
-    return note_ack_fn(root, home, chair, note_id, action)
+    return _result(chair, note_ack_fn(root, home, chair, note_id, action))
 
 
 @mcp.tool
@@ -138,49 +150,52 @@ def note_gate(
 ) -> dict[str, Any]:
     """Set gate and optional gate_note on a mail note. Nexus only."""
     root, home = _ctx()
-    return note_gate_fn(root, home, chair, note_id, gate, gate_note=gate_note)
+    return _result(
+        chair,
+        note_gate_fn(root, home, chair, note_id, gate, gate_note=gate_note),
+    )
 
 
 @mcp.tool
 def note_remove(chair: str, note_id: str) -> dict[str, Any]:
     """Delete a mail note this chair authored."""
     root, home = _ctx()
-    return note_remove_fn(root, home, chair, note_id)
+    return _result(chair, note_remove_fn(root, home, chair, note_id))
 
 
 @mcp.tool
 def now_view(chair: str) -> dict[str, Any]:
     """Read NOW.md. Nexus also receives living NOW: sitreps, reconcile, and open mail."""
     root, home = _ctx()
-    return now_view_fn(root, home, chair)
+    return _result(chair, now_view_fn(root, home, chair))
 
 
 @mcp.tool
 def syos_post(chair: str, body: str) -> dict[str, Any]:
     """Create a syos note. Author and intended_for are forced to chair. Body is the brief."""
     root, home = _ctx()
-    return syos_post_fn(root, home, chair, body)
+    return _result(chair, syos_post_fn(root, home, chair, body))
 
 
 @mcp.tool
 def syos_list(chair: str) -> dict[str, Any]:
     """Open syos notes this chair authored (itself only)."""
     root, home = _ctx()
-    return syos_list_fn(root, home, chair)
+    return _result(chair, syos_list_fn(root, home, chair))
 
 
 @mcp.tool
 def syos_ack(chair: str, note_id: str, action: str) -> dict[str, Any]:
     """Set ack on a syos note this chair can see."""
     root, home = _ctx()
-    return syos_ack_fn(root, home, chair, note_id, action)
+    return _result(chair, syos_ack_fn(root, home, chair, note_id, action))
 
 
 @mcp.tool
 def syos_remove(chair: str, note_id: str) -> dict[str, Any]:
     """Delete a syos note this chair authored."""
     root, home = _ctx()
-    return syos_remove_fn(root, home, chair, note_id)
+    return _result(chair, syos_remove_fn(root, home, chair, note_id))
 
 
 def run(root: Path, home: Path) -> None:

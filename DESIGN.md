@@ -1,8 +1,8 @@
 # Envoy — Design Spec
 
-**Version 0.2 · amended 2026-09-05** (syos service). v0.1 locked 2026-08-25.
+**Version 0.2 · amended 2026-09-08** (mail visibility, outstanding notice, list auto-ack). Syos amended 2026-09-05. v0.1 locked 2026-08-25.
 
-**Status:** accepted 2026-08-25 (the operator). Syos slice accepted 2026-09-05. Product name Envoy.
+**Status:** accepted 2026-08-25 (the operator). Syos slice accepted 2026-09-05. Mail visibility and outstanding notice accepted 2026-09-08. Product name Envoy.
 
 ---
 
@@ -190,6 +190,7 @@ Envoy returns `gate` and `gate_note` only to a nexus caller. A node listing its 
 - A node may list mail notes it authored, and mail notes where `intended_for` is that node.
 - Only `author` may remove.
 - Any chair that can see a note may write `ack`.
+- `note_list` sets `ack` to `shown` when the calling chair is `intended_for` and the note has no ack yet. Listing as the intended chair is awareness. Nexus listing notes meant for other chairs does not auto-ack them. Explicit `note_ack` remains available for other actions.
 - Acked notes may expire 14 days after the ack. Unacked notes and notes with `gate: foul` or `gate: hold` do not expire.
 
 ### 5.3 Status subscriber contract
@@ -239,9 +240,9 @@ Process on command only (`process the inbox`, or point at a file). Never on sess
 
 1. Write the letter into `bulletin/inbox/` (handoff schema, `kind: export`).
 2. `note_post` the bell (`intended_for`, `inbox` path, `why`).
-3. Later, `note_list` own notes. On ack, persist anything still unpersisted, then `note_remove`.
+3. Later, when a result carries the note id under `mail_acked_authored` (or after `note_list` own notes shows an ack), persist anything still unpersisted, then `note_remove`.
 
-**Receive (into this chair's inbox).** Only nexus writes a node inbox (`kind: deliver`). The note is the wake-up. Process the letter on command under this constitution.
+**Receive (into this chair's inbox).** Only nexus writes a node inbox (`kind: deliver`). The note is the wake-up. `note_list` as this chair acks `shown` on notes meant for it. Process the letter on command under this constitution.
 
 **Do not.** Do not write another node's inbox. Do not treat the note as the letter. Do not process because the bell rang.
 
@@ -402,6 +403,15 @@ Unknown `intended_for` (not a map `name` and not `nexus`): accept the note, nexu
 `status_get`: node chair requesting a different node's sitrep is `ok: false`, `error: forbidden`. Nexus may read any opted-in child. A node may omit `node` and get its own.
 
 Return shape: success includes `"ok": true`. Failures include `"ok": false` and `"error": <token>`. Tokens used in v0.1: `unknown_chair`, `nexus_only`, `not_subscribed`, `forbidden`, `missing_map`, `missing_root`, `missing_status`, `missing_note`, `not_author`, `invalid_payload`.
+
+Every tool result also carries a chair-scoped mail notice (empty lists when quiet):
+
+| Field | Meaning |
+|---|---|
+| `mail_unacked_for_me` | Ids of open mail notes where `intended_for` is the calling chair and `ack` is empty |
+| `mail_acked_authored` | Ids of open mail notes this chair authored that now carry an `ack` |
+
+Ids are enough to call `note_ack` or `note_remove` without a prior `note_list`. The notice is mail only; syos stays on `syos_list`.
 
 ---
 

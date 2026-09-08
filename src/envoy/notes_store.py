@@ -76,6 +76,54 @@ def _expired(note: dict[str, Any], now: datetime) -> bool:
     return now - _parse_time(str(stamp)) > timedelta(days=14)
 
 
+def _iter_open_mail(home: Path, now: datetime) -> list[dict[str, Any]]:
+    folder = home / "mail"
+    if not folder.is_dir():
+        return []
+    notes: list[dict[str, Any]] = []
+    for path in sorted(folder.glob("*.json")):
+        note = json.loads(path.read_text(encoding="utf-8"))
+        if _expired(note, now):
+            continue
+        notes.append(note)
+    return notes
+
+
+def mail_outstanding(
+    home: Path,
+    chair: str,
+    *,
+    now: datetime | None = None,
+) -> dict[str, list[str]]:
+    """Chair-scoped mail notice: unacked for me, and my authored notes that carry ack."""
+    current = now or datetime.now(timezone.utc)
+    unacked: list[str] = []
+    acked_authored: list[str] = []
+    for note in _iter_open_mail(home, current):
+        note_id = str(note["id"])
+        if note.get("intended_for") == chair and not (note.get("ack") or None):
+            unacked.append(note_id)
+        if note.get("author") == chair and (note.get("ack") or None):
+            acked_authored.append(note_id)
+    return {
+        "mail_unacked_for_me": unacked,
+        "mail_acked_authored": acked_authored,
+    }
+
+
+def with_mail_notice(
+    result: dict[str, Any],
+    home: Path,
+    chair: str,
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Merge outstanding-mail ids into any tool result."""
+    merged = dict(result)
+    merged.update(mail_outstanding(home, chair, now=now))
+    return merged
+
+
 def note_post(
     root: Path,
     home: Path,
@@ -113,14 +161,15 @@ def note_list(
         return {"ok": False, "error": "unknown_chair"}
     current = now or datetime.now(timezone.utc)
     notes: list[dict[str, Any]] = []
-    folder = home / "mail"
-    if folder.is_dir():
-        for path in sorted(folder.glob("*.json")):
-            note = json.loads(path.read_text(encoding="utf-8"))
-            if _expired(note, current):
-                continue
-            if _can_see(chair, note):
-                notes.append(_public(note, chair))
+    for note in _iter_open_mail(home, current):
+        if not _can_see(chair, note):
+            continue
+        # Listing as the intended chair is awareness: ack shown. Nexus listing
+        # other chairs' mail does not match intended_for and is not touched.
+        if note.get("intended_for") == chair and not (note.get("ack") or None):
+            note["ack"] = {"chair": chair, "time": _now(), "action": "shown"}
+            _save(home, note)
+        notes.append(_public(note, chair))
     return {"ok": True, "notes": notes}
 
 

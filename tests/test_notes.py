@@ -3,7 +3,15 @@ from pathlib import Path
 
 from tests.conftest import write_map, write_project
 
-from envoy.notes_store import note_ack, note_gate, note_list, note_post, note_remove
+from envoy.notes_store import (
+    mail_outstanding,
+    note_ack,
+    note_gate,
+    note_list,
+    note_post,
+    note_remove,
+    with_mail_notice,
+)
 
 
 def _seed(root: Path) -> None:
@@ -71,14 +79,77 @@ def test_intended_for_can_list_and_ack(root: Path, home: Path) -> None:
     assert len(harbor_list["notes"]) == 1
     assert harbor_list["notes"][0]["id"] == note_id
     assert "gate" not in harbor_list["notes"][0]
+    assert harbor_list["notes"][0]["ack"]["chair"] == "harbor"
+    assert harbor_list["notes"][0]["ack"]["action"] == "shown"
     river_list = note_list(root, home, chair="river")
     assert river_list["notes"] == []
-    denied = note_ack(root, home, chair="river", note_id=note_id, action="shown")
+    denied = note_ack(root, home, chair="river", note_id=note_id, action="checked")
     assert denied["error"] == "forbidden"
-    acked = note_ack(root, home, chair="harbor", note_id=note_id, action="shown")
-    assert acked["ok"] is True
-    assert acked["note"]["ack"]["chair"] == "harbor"
-    assert acked["note"]["ack"]["action"] == "shown"
+    checked = note_ack(root, home, chair="harbor", note_id=note_id, action="checked")
+    assert checked["ok"] is True
+    assert checked["note"]["ack"]["action"] == "checked"
+
+
+def test_note_list_auto_ack_only_for_intended_chair(root: Path, home: Path) -> None:
+    _seed(root)
+    to_harbor = note_post(
+        root, home, chair="nexus",
+        intended_for="harbor", inbox="harbor/inbox/a.md", why="for harbor",
+    )
+    to_nexus = note_post(
+        root, home, chair="harbor",
+        intended_for="nexus", inbox="inbox/b.md", why="export",
+    )
+    harbor_id = to_harbor["note"]["id"]
+    nexus_id = to_nexus["note"]["id"]
+
+    nexus_list = note_list(root, home, chair="nexus")
+    by_id = {note["id"]: note for note in nexus_list["notes"]}
+    assert by_id[harbor_id].get("ack") is None
+    assert by_id[nexus_id]["ack"]["action"] == "shown"
+    assert by_id[nexus_id]["ack"]["chair"] == "nexus"
+
+    harbor_list = note_list(root, home, chair="harbor")
+    harbor_by_id = {note["id"]: note for note in harbor_list["notes"]}
+    assert harbor_by_id[harbor_id]["ack"]["action"] == "shown"
+    assert harbor_by_id[nexus_id].get("ack")["action"] == "shown"
+
+
+def test_mail_outstanding_chair_scoped(root: Path, home: Path) -> None:
+    _seed(root)
+    to_harbor = note_post(
+        root, home, chair="nexus",
+        intended_for="harbor", inbox="harbor/inbox/a.md", why="for harbor",
+    )
+    export = note_post(
+        root, home, chair="harbor",
+        intended_for="nexus", inbox="inbox/b.md", why="export",
+    )
+    harbor_id = to_harbor["note"]["id"]
+    export_id = export["note"]["id"]
+
+    before = mail_outstanding(home, "harbor")
+    assert before["mail_unacked_for_me"] == [harbor_id]
+    assert before["mail_acked_authored"] == []
+
+    note_ack(root, home, chair="nexus", note_id=export_id, action="shown")
+    after_ack = mail_outstanding(home, "harbor")
+    assert after_ack["mail_unacked_for_me"] == [harbor_id]
+    assert after_ack["mail_acked_authored"] == [export_id]
+
+    note_list(root, home, chair="harbor")
+    after_list = mail_outstanding(home, "harbor")
+    assert after_list["mail_unacked_for_me"] == []
+    assert after_list["mail_acked_authored"] == [export_id]
+
+    wrapped = with_mail_notice({"ok": True}, home, "harbor")
+    assert wrapped["ok"] is True
+    assert wrapped["mail_unacked_for_me"] == []
+    assert wrapped["mail_acked_authored"] == [export_id]
+
+    river = mail_outstanding(home, "river")
+    assert river["mail_unacked_for_me"] == []
+    assert river["mail_acked_authored"] == []
 
 
 def test_note_gate_nexus_only_and_stripped(root: Path, home: Path) -> None:
