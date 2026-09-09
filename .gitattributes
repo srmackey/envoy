@@ -1,0 +1,4 @@
+# A shell script with CRLF fails at the shebang, so the hook's line endings are
+# repo-controlled rather than clone-controlled. A contributor whose global
+# core.autocrlf is true would otherwise check out a gate that cannot run.
+.githooks/pre-commit text eol=lf
