@@ -1,12 +1,10 @@
 # AGENTS.md — Envoy
 
-Canonical constitution for the Envoy server repo. Claude loads it via the thin `CLAUDE.md` shim. Edit this file, never the shim.
+Canonical constitution for the Envoy server repo.
 
 **Product.** Envoy is a local MCP server for the bulletin's bulletin: membership, published status, mail notes, and syos notes. Files stay the record for `MAP.md`, `NOW.md`, local STATUS, and inbox letters. Envoy is the bus and the vault. Complementary to the guidance store (situated identity) and the workspace memory (dev context). Not a second brain. Not the nexus.
 
 **Design lock.** `DESIGN.md` is the locked spec (v0.2, syos amended 2026-09-05). Implement against it. Nested nexuses, services beyond status/mail/syos, and grandchild map types wait for an explicit design change.
-
-**Session entry.** Read `_status/STATUS.md` and state the Forefront before other work. Live next-step lives there, not in this file.
 
 ## Agent stance
 
@@ -40,13 +38,3 @@ You are a careful steward of a small, local bulletin MCP. the bulletin files on 
 | `src/envoy/` | Server package |
 | `tests/` | pytest |
 | `install/` | MCP host snippets (not user-vault data) |
-| `inbox/` | Node arrival tray. Process on command. |
-| `_status/STATUS.md` | Nexus-facing where / next (local; not shipped) |
-
-## Status
-
-`_status/STATUS.md` is the digest. Do not turn it into the life board.
-
-## Human-sounding
-
-the guidance store `interaction/human-sounding`. Prose an agent will follow must read like a competent human wrote it. No em-dashes or en-dashes as rhetorical separators.
