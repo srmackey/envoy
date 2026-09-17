@@ -1,8 +1,8 @@
 # MCP host snippets
 
-Envoy needs a the bulletin root and a vault. Set `ENVOY_ROOT` (required) and `ENVOY_HOME` (default `~/.envoy` on POSIX, or pass `--vault`).
+Envoy needs a bulletin root and a vault. Set `ENVOY_ROOT` (required) and `ENVOY_HOME` (default `~/.envoy` on POSIX, or pass `--vault`).
 
-Replace the paths below with your checkout and the bulletin root. Windows examples use the operator's machine.
+Replace the paths below with your checkout and bulletin root.
 
 ## Cursor (`~/.cursor/mcp.json` or project `.cursor/mcp.json`)
 
