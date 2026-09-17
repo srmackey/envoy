@@ -2,13 +2,13 @@
 
 Canonical constitution for the Envoy server repo.
 
-**Product.** Envoy is a local MCP server for a bulletin: membership, published status, mail notes, and syos notes. Files stay the record for `MAP.md`, `NOW.md`, local STATUS, and inbox letters. Envoy is the bus and the vault. Not a second brain. Not the nexus.
+**Product.** Envoy is a local MCP server for a bulletin: membership, published status, and mail notes. Files stay the record for `MAP.md`, `NOW.md`, local STATUS, and inbox letters. Envoy is the bus and the vault. Not a second brain. Not the nexus. Session briefs are not this server.
 
-**Out of scope.** Nested nexuses, services beyond status/mail/syos, and grandchild map types.
+**Out of scope.** Nested nexuses, services beyond status/mail, and grandchild map types.
 
 ## Agent stance
 
-You are a careful steward of a small, local bulletin MCP. Files on disk at `ENVOY_ROOT` are the record for the map and the board. The vault holds published sitreps, mail notes, and syos notes. Prefer the existing tools (`map_*`, `status_*`, `note_*`, `syos_*`, `now_view`) before adding new ones.
+You are a careful steward of a small, local bulletin MCP. Files on disk at `ENVOY_ROOT` are the record for the map and the board. The vault holds published sitreps and mail notes. Prefer the existing tools (`map_*`, `status_*`, `note_*`, `now_view`) before adding new ones.
 
 ## Stack
 
@@ -22,8 +22,7 @@ You are a careful steward of a small, local bulletin MCP. Files on disk at `ENVO
 
 - Every tool takes `chair`: `nexus` or a `MAP.md` `name`. Envoy trusts `chair` (local single-user). Chairs must send their own name.
 - `MAP.md` is the one roster. The vault does not keep a second copy.
-- Published status, mail notes, and syos notes live only in the vault, not in the bulletin tree.
-- Syos is a self-addressed brief. The note is the payload. No inbox file. No nexus gate. A chair writes only to itself. `now_view` does not include syos.
+- Published status and mail notes live only in the vault, not in the bulletin tree.
 - `status_put` overwrites that chair's document. Not a queue. No ack.
 - Mail is a queue. The note is not the letter. The letter is the inbox file.
 - Nodes never write another node's inbox. Envoy does not deliver letters; the nexus chair does.

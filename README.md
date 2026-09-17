@@ -1,6 +1,6 @@
 # Envoy
 
-Envoy is a local MCP server for the bulletin's bulletin: membership (`MAP.md`), published status, mail notes, and syos notes. Files on disk stay the record for the map, `NOW.md`, local `STATUS.md`, and inbox letters. The vault holds published sitreps, mail notes, and syos notes. Envoy is the bus and the vault, complementary to the guidance store and the dev-context server. It is not a second brain and not the nexus chair.
+Envoy is a local MCP server for the bulletin's bulletin: membership (`MAP.md`), published status, and mail notes. Files on disk stay the record for the map, `NOW.md`, local `STATUS.md`, and inbox letters. The vault holds published sitreps and mail notes. Envoy is the bus and the vault, complementary to the guidance store and the dev-context server. It is not a second brain and not the nexus chair. Session briefs are not this server.
 
 ## Stack
 
@@ -38,12 +38,8 @@ MCP host snippets: [`install/mcp.json.examples.md`](install/mcp.json.examples.md
 | `note_gate` |
 | `note_remove` |
 | `now_view` |
-| `syos_post` |
-| `syos_list` |
-| `syos_ack` |
-| `syos_remove` |
 
-Locked behavior and chair rules: [`DESIGN.md`](DESIGN.md) (v0.2). Syos is a self-addressed brief. The note is the payload. `now_view` does not include it.
+Locked behavior and chair rules: [`DESIGN.md`](DESIGN.md) (v0.3). Session briefs live on the chair-memory store, not on this server.
 
 ## Tests
 

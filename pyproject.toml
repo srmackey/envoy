@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "envoy"
-version = "0.2.1"
-description = "the bulletin bulletin MCP: membership, published status, mail notes, syos notes"
+version = "0.3.0"
+description = "the bulletin bulletin MCP: membership, published status, mail notes"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
