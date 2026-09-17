@@ -19,7 +19,7 @@ Every Envoy call sends `chair` as this chair's map name, or `nexus` when this ch
 
 **Then write it.** Writing into the nexus inbox does not wait on the principal. That inbox is triaged on command and never because a file arrived, so a letter starts a queue rather than an action, and anything moving onward into a `sensitive` chair passes the nexus mail gate.
 
-1. Write the letter into the nexus inbox (`kind: export`): a title, the finding written for the receiver, a pointer home, and why it was sent. Not a dump of the source.
+1. Write the letter into the nexus inbox (`kind: export`) through the workspace memory (`write_working`, path under `inbox/`). A title, the finding written for the receiver, a pointer home, and why it was sent. Not a dump of the source. Do not write the git checkout `inbox/`.
 2. `note_post` the bell (`intended_for`, `inbox` path, `why`).
 3. Later, `note_list` own notes. On ack, persist anything still unpersisted, then `note_remove`.
 
