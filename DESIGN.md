@@ -427,7 +427,7 @@ The article bodies encode §5.3, §5.4, and §5.6. They are not a second contrac
 
 **`methodology/envoy-mail`:** mail subscriber. Inbox machine plus `note_post`. Privacy-sensitive chairs keep `why` at summary-plus-pointer grain.
 
-**`methodology/envoy-syos`:** syos subscriber. Self-addressed brief, no inbox file, no nexus gate. Write on the trigger phrase; read on session start and step-in; present and wait.
+**`methodology/envoy-syos`:** syos subscriber. Terse restart brief (check X has B; one-line jump-in). Not a spec or status dump. No inbox file, no nexus gate. Write on the trigger phrase; read on session start and step-in; present and wait.
 
 **Nexus (`methodology/nexus-board` + `methodology/nexus-handoff`):** session-start pack uses `now_view` plus inbox count; run the mail gate; do not invent rank; `map_upsert` when the registry changes; `AGENTS.md` points at `MAP.md` for membership.
 

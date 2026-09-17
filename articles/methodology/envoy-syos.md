@@ -1,7 +1,7 @@
 ---
 id: methodology/envoy-syos
 title: Envoy syos
-description: "Envoy syos subscriber: self-addressed brief for a later sitting. Use when project.yaml lists syos, or when asked to syos / syos that change so I can check."
+description: "Envoy syos subscriber: terse restart brief. Use when project.yaml lists syos, or when asked to syos / syos that change so I can check."
 tags: [methodology, envoy]
 ---
 
@@ -15,7 +15,14 @@ Every Envoy call sends `chair` as this chair's map name, or `nexus` when this ch
 
 The principal says `syos` or "syos that change so I can check". Do not write one on every materialize, status publish, or mail note.
 
-1. `syos_post` with `body` set to the checkable brief. `author` and `intended_for` are this chair.
+**Grain.** Two short beats. Nothing else.
+
+1. **Check.** We updated X. Confirm X is available and has B.
+2. **Jump-in.** One line: where this chair was, what it was doing, where it was heading.
+
+Do not put STATUS, next steps, evolution, leftover lists, or another spec in the note. Those live in the sitting, `_status/STATUS.md`, or the paper. If there is nothing to check and nowhere to jump, skip the note.
+
+1. `syos_post` with `body` set to that brief. `author` and `intended_for` are this chair.
 2. Stop if this sitting's loaded snapshot is already stale.
 
 A chair writes only to itself.
@@ -24,7 +31,7 @@ A chair writes only to itself.
 
 On session start, and on step-in to this chair, `syos_list` this chair's open notes.
 
-If any are present, present them. Then wait. Do not verify the brief. Do not continue the work because a note arrived. The principal chooses to act, ack, or skip it.
+If any are present, present them. Then wait. Do not verify the brief. Do not continue the work because a note arrived. Do not treat the note as a charter to run a second sitting. The principal chooses to act, ack, or skip it. Act means run the check and pick up the jump-in.
 
 `now_view` does not include syos. Mail stays mail. Status stays the next move.
 

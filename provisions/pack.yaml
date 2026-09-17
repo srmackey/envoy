@@ -1,7 +1,7 @@
 id: envoy
 name: Envoy
 kind: theme
-version: 0.1.0
+version: 0.1.1
 articles:
   - id: methodology/envoy-status
     path: articles/methodology/envoy-status.md
