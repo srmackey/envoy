@@ -12,7 +12,7 @@ Envoy is a local MCP server for the bulletin's bulletin: a thin bus plus reader.
 
 It holds membership (`MAP.md` librarian), published status (vault sitreps), mail notes (bells for inbox letters), and syos notes (self-addressed briefs). Local files stay the record for the map, `NOW.md`, local `STATUS.md`, and inbox letters. Status is not a conversation. Mail is. Syos is a one-shot brief a chair leaves for its next sitting.
 
-It is not the guidance store (situated identity). It is not the workspace memory (dev context). It is not the nexus chair. The nexus chair still gates mail and ranks the board.
+It is not the guidance store (situated identity). It is not the dev-context server (dev context). It is not the workspace memory (chair memory). It is not the nexus chair. The nexus chair still gates mail and ranks the board.
 
 ---
 

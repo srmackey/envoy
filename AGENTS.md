@@ -38,3 +38,5 @@ You are a careful steward of a small, local bulletin MCP. Files on disk at `ENVO
 | `src/envoy/` | Server package |
 | `tests/` | pytest |
 | `install/` | MCP host snippets (not user-vault data) |
+| `articles/` | Public-contract members other chairs harvest |
+| `provisions/pack.yaml` | Extract list for that contract |

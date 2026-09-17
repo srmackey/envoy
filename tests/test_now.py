@@ -12,7 +12,7 @@ updated: 2026-08-25
 ## This week
 
 1. **Chart the harbor** · due: none · node: harbor
-2. **Lane 1 packs** · due: none · node: career
+2. **Lane 1 packs** · due: none · node: cove
 
 ## Later
 
@@ -26,9 +26,13 @@ def _seed(root: Path) -> None:
         [
             {"name": "nexus", "inbox": True, "description": "Nexus", "status": "active"},
             {"name": "harbor", "inbox": True, "description": "Harbor", "status": "active"},
-            {"name": "family", "inbox": True, "description": "Family node", "status": "active"},
-            {"name": "career", "inbox": True, "description": "Career node", "status": "active"},
+            {"name": "reef", "inbox": True, "description": "Reef node", "status": "active"},
+            {"name": "cove", "inbox": True, "description": "Cove node", "status": "active"},
         ],
+    )
+    (root / "always-on.yaml").write_text(
+        "always_on:\n  - reef\n  - cove\n",
+        encoding="utf-8",
     )
     write_project(
         root / "harbor",
@@ -72,8 +76,24 @@ def test_now_view_accounted_and_unaccounted(root: Path, home: Path) -> None:
     fronts = {row["node"]: row for row in got["forefronts"]}
     assert "next_steps" not in fronts["harbor"]
     assert fronts["harbor"]["forefront"] == "Moor the river"
-    assert "family" in got["always_on_missing"]
-    assert "career" not in got["always_on_missing"]
+    assert "reef" in got["always_on_missing"]
+    assert "cove" not in got["always_on_missing"]
+
+
+def test_now_view_always_on_empty_when_file_missing(root: Path, home: Path) -> None:
+    write_map(
+        root,
+        [
+            {"name": "nexus", "inbox": True, "description": "Nexus", "status": "active"},
+            {"name": "harbor", "inbox": True, "description": "Harbor", "status": "active"},
+        ],
+    )
+    (root / "NOW.md").write_text(
+        "# NOW\nupdated: 2026-08-25\n\n## This week\n\n1. **Chart the harbor** · due: none · node: harbor\n",
+        encoding="utf-8",
+    )
+    got = now_view(root, home, chair="nexus")
+    assert got["always_on_missing"] == []
 
 
 def test_now_view_no_trail_when_no_sitrep(root: Path, home: Path) -> None:

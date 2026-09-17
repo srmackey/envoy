@@ -5,11 +5,30 @@ import re
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from envoy.notes_store import note_list
 from envoy.status_store import status_get
 
 LINE_RE = re.compile(r"\*\*(.+?)\*\*\s*·\s*due:\s*(\S+)\s*·\s*node:\s*(\S+)")
-ALWAYS_ON = ("family", "career")
+
+
+def load_always_on(root: Path) -> list[str]:
+    path = root / "always-on.yaml"
+    if not path.is_file():
+        return []
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if data is None:
+        return []
+    if isinstance(data, list):
+        names = data
+    elif isinstance(data, dict):
+        names = data.get("always_on") or data.get("chairs") or []
+    else:
+        return []
+    if not isinstance(names, list):
+        return []
+    return [str(n).strip() for n in names if str(n).strip()]
 
 
 def _norm(text: str) -> str:
@@ -110,5 +129,7 @@ def now_view(root: Path, home: Path, chair: str) -> dict[str, Any]:
     result["reconcile"] = reconcile
     result["forefronts"] = forefronts
     result["mail"] = mail.get("notes") or []
-    result["always_on_missing"] = [name for name in ALWAYS_ON if name not in week_nodes]
+    result["always_on_missing"] = [
+        name for name in load_always_on(root) if name not in week_nodes
+    ]
     return result
