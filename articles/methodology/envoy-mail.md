@@ -25,7 +25,7 @@ Every Envoy call sends `chair` as this chair's map name, or `nexus` when this ch
 
 ## Receive
 
-Only nexus writes a node inbox (`kind: deliver`). The folder and what happens to a letter in it are `methodology/node-inbox`, or `methodology/nexus-handoff` when this chair is the nexus.
+Only nexus writes a node inbox (`kind: deliver`). The folder and what happens to a letter in it are `methodology/node-inbox`, or `methodology/post-office` when this chair is the nexus.
 
 Do not write another node's inbox. Do not treat the note as the letter.
 
@@ -41,7 +41,7 @@ The inbox file is the durable signal. The note is only the wake-up. Awareness do
 
 Ack and removal are settled work under `methodology/autonomy-gate-provenance`, never proposals: the letter is the durable copy, so neither is worth a turn of the principal's.
 
-**Exception: the nexus mail gate.** A note intended for `nexus` goes through the gate in `methodology/nexus-handoff` before it is acked, but only where that gate fires. Where it does not, ack `shown` like any other note. That article holds the condition; do not restate it here.
+**Exception: the nexus mail gate.** A note intended for `nexus` goes through the gate in `methodology/post-office` before it is acked, but only where that gate fires. Where it does not, ack `shown` like any other note. That article holds the condition; do not restate it here.
 
 If Envoy is down, skip ack. The pending file in `inbox/` still holds the work.
 
