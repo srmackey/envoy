@@ -1,11 +1,13 @@
 # Envoy
 
-Envoy is a local MCP server for the bulletin's bulletin: membership (`MAP.md`), published status, and mail notes. Files on disk stay the record for the map, `NOW.md`, local `STATUS.md`, and inbox letters. The vault holds published sitreps and mail notes. Envoy is the bus and the vault, complementary to the guidance store and the dev-context server. It is not a second brain and not the nexus chair. Session briefs are not this server.
+Envoy is a local MCP server for a bulletin: membership (`MAP.md`), published status, and mail notes. Files on disk stay the record for the map, `NOW.md`, local status, and inbox letters. The vault holds published sitreps and mail notes. Envoy is the bus and the vault. It is not a wiki, not standing guidance, and not the nexus chair. Session briefs are not this server.
+
+A clone can run it against any bulletin root. Wire it into a larger system, or use it on its own.
 
 ## Stack
 
 - Python 3.11+, `uv`, FastMCP, Pydantic v2, PyYAML
-- `MAP.md` and `NOW.md` at the the bulletin root
+- `MAP.md` and `NOW.md` at the bulletin root (`ENVOY_ROOT`)
 - Vault JSON under `ENVOY_HOME` (default `~/.envoy`)
 - Tests with pytest under `tests/`
 
@@ -14,12 +16,12 @@ Envoy is a local MCP server for the bulletin's bulletin: membership (`MAP.md`), 
 ```bash
 uv sync
 uv run pytest
-uv run envoy --root <bulletin>
+uv run envoy --root /path/to/bulletin
 ```
 
 | Variable | Role |
 |---|---|
-| `ENVOY_ROOT` | the bulletin root (required; or pass `--root`) |
+| `ENVOY_ROOT` | Bulletin root (required; or pass `--root`) |
 | `ENVOY_HOME` | Vault root (default `~/.envoy`; or pass `--vault`) |
 
 MCP host snippets: [`install/mcp.json.examples.md`](install/mcp.json.examples.md).
@@ -39,7 +41,7 @@ MCP host snippets: [`install/mcp.json.examples.md`](install/mcp.json.examples.md
 | `note_remove` |
 | `now_view` |
 
-Locked behavior and chair rules: [`DESIGN.md`](DESIGN.md) (v0.3). Session briefs live on the chair-memory store, not on this server.
+How it is structured: [`DESIGN.md`](DESIGN.md). What moved: [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Tests
 

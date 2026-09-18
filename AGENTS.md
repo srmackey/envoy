@@ -34,6 +34,7 @@ You are a careful steward of a small, local bulletin MCP. Files on disk at `ENVO
 | Path | Role |
 |------|------|
 | `DESIGN.md` | System presentation |
+| `CHANGELOG.md` | What moved |
 | `src/envoy/` | Server package |
 | `tests/` | pytest |
 | `install/` | MCP host snippets (not user-vault data) |

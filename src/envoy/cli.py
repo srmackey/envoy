@@ -9,9 +9,9 @@ from envoy.paths import resolve_home, resolve_root
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="envoy",
-        description="Envoy MCP server: the bulletin bulletin.",
+        description="Envoy MCP server: bulletin (map, published status, mail notes).",
     )
-    parser.add_argument("--root", default=None, help="the bulletin root. Or set ENVOY_ROOT.")
+    parser.add_argument("--root", default=None, help="Bulletin root. Or set ENVOY_ROOT.")
     parser.add_argument("--vault", default=None, help="Vault root. Or set ENVOY_HOME. Default ~/.envoy.")
     return parser
 

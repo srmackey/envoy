@@ -1,4 +1,4 @@
-"""Envoy: the bulletin bulletin MCP."""
+"""Envoy: bulletin MCP."""
 
 from __future__ import annotations
 

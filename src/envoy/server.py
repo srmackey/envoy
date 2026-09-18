@@ -20,7 +20,7 @@ from envoy.status_store import status_get as status_get_fn
 from envoy.status_store import status_put as status_put_fn
 
 INSTRUCTIONS = """\
-Envoy is the the bulletin bulletin. Files stay the record for MAP.md, NOW.md, local STATUS, and inbox letters. Envoy stores published sitreps and mail notes. Every call sends chair (nexus or a MAP.md name). Session living NOW is now_view. map_list is the roster API. Do not poll sibling STATUS files once this server is live. Session briefs live on the chair-memory store, not here.
+Envoy is a local bulletin MCP. Files stay the record for MAP.md, NOW.md, local STATUS, and inbox letters. Envoy stores published sitreps and mail notes. Every call sends chair (nexus or a MAP.md name). Session living NOW is now_view. map_list is the roster API. Do not poll sibling STATUS files once this server is live. Session briefs live on the chair-memory store, not here.
 """
 
 mcp = FastMCP("Envoy", instructions=INSTRUCTIONS)
