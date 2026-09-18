@@ -1,10 +1,10 @@
 # Envoy — Design Spec
 
-**Version 0.3 · amended 2026-09-17** (syos retired; session briefs live on the chair-memory store). v0.2 mail visibility 2026-09-08. Syos had been the third service (locked 2026-09-05). v0.1 locked 2026-08-25.
+**Version 0.3 · amended 2026-09-17** (syos retired; leftover reconcile mismatch stays `unaccounted`). v0.2 mail visibility 2026-09-08. Syos had been the third service (locked 2026-09-05). v0.1 locked 2026-08-25.
 
 **Status:** accepted 2026-08-25 (the operator). Syos slice accepted 2026-09-05. Mail visibility and outstanding notice accepted 2026-09-08. Product name Envoy.
 
-Syos retired 2026-09-17.
+Syos retired 2026-09-17. Parked `stale_trail` / `drifted` dropped 2026-09-17.
 
 ---
 
@@ -293,7 +293,7 @@ Normalize whitespace. Board substance is the one-line text of the ranked item (n
 - `unaccounted` otherwise (flag).
 - Lines with `node: none` are not reconciled against a child sitrep.
 
-This is conservative. The chair may still explain a flag. Envoy does not infer synonyms. `stale_trail` and `drifted` wait; leftover mismatch stays `unaccounted`.
+This is conservative. The chair may still explain a flag. Envoy does not infer synonyms. Leftover mismatch is `unaccounted`. Do not add `stale_trail` or `drifted`: the board has no per-line clock, and leftover live mismatch is already this flag.
 
 ### 7.2 Mail, node → nexus
 
