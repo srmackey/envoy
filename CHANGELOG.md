@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 - Public docs, CLI copy, and package description no longer name an instance. The bulletin root is `ENVOY_ROOT` / `--root`.
 - `DESIGN.md` is the public presentation. Implementer spec lives in chair overlay.
+- Public contract 0.2.1: mail writes the letter through the overlay home. It does not name a store.
 
 ## [0.3.0] - 2026-09-17
 

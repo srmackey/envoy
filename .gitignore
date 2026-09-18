@@ -10,8 +10,5 @@ build/
 .ruff_cache/
 .vscode/
 uv.lock
-_status/
 project.yaml
-inbox/
-_system/
 PROTOCOL.md
