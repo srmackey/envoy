@@ -25,6 +25,32 @@ Envoy is a local bulletin MCP. Files stay the record for MAP.md, NOW.md, local S
 
 mcp = FastMCP("Envoy", instructions=INSTRUCTIONS)
 
+# Clients treat an unset hint as destructive and open to the network.
+_READ = {
+    "readOnlyHint": True,
+    "destructiveHint": False,
+    "idempotentHint": True,
+    "openWorldHint": False,
+}
+_WRITE = {
+    "readOnlyHint": False,
+    "destructiveHint": False,
+    "idempotentHint": True,
+    "openWorldHint": False,
+}
+_CREATE = {
+    "readOnlyHint": False,
+    "destructiveHint": False,
+    "idempotentHint": False,
+    "openWorldHint": False,
+}
+_DELETE = {
+    "readOnlyHint": False,
+    "destructiveHint": True,
+    "idempotentHint": True,
+    "openWorldHint": False,
+}
+
 _root: Path | None = None
 _home: Path | None = None
 
@@ -46,14 +72,14 @@ def _result(chair: str, payload: dict[str, Any]) -> dict[str, Any]:
     return with_mail_notice(payload, home, chair)
 
 
-@mcp.tool
+@mcp.tool(annotations=_READ)
 def map_list(chair: str) -> dict[str, Any]:
     """Read MAP.md. Nexus caller gets project.yaml join."""
     root, _ = _ctx()
     return _result(chair, map_list_fn(root, chair))
 
 
-@mcp.tool
+@mcp.tool(annotations=_WRITE)
 def map_upsert(
     chair: str,
     name: str,
@@ -78,7 +104,7 @@ def map_upsert(
     )
 
 
-@mcp.tool
+@mcp.tool(annotations=_WRITE)
 def status_put(
     chair: str,
     forefront: str,
@@ -104,14 +130,14 @@ def status_put(
     )
 
 
-@mcp.tool
+@mcp.tool(annotations=_READ)
 def status_get(chair: str, node: str | None = None) -> dict[str, Any]:
     """Read a published sitrep. A node reads its own. Nexus reads opted-in children."""
     root, home = _ctx()
     return _result(chair, status_get_fn(root, home, chair, node=node))
 
 
-@mcp.tool
+@mcp.tool(annotations=_CREATE)
 def note_post(
     chair: str,
     intended_for: str,
@@ -123,21 +149,21 @@ def note_post(
     return _result(chair, note_post_fn(root, home, chair, intended_for, inbox, why))
 
 
-@mcp.tool
+@mcp.tool(annotations=_WRITE)
 def note_list(chair: str) -> dict[str, Any]:
     """Open mail notes visible to chair."""
     root, home = _ctx()
     return _result(chair, note_list_fn(root, home, chair))
 
 
-@mcp.tool
+@mcp.tool(annotations=_WRITE)
 def note_ack(chair: str, note_id: str, action: str) -> dict[str, Any]:
     """Set ack on a mail note this chair can see."""
     root, home = _ctx()
     return _result(chair, note_ack_fn(root, home, chair, note_id, action))
 
 
-@mcp.tool
+@mcp.tool(annotations=_WRITE)
 def note_gate(
     chair: str,
     note_id: str,
@@ -152,14 +178,14 @@ def note_gate(
     )
 
 
-@mcp.tool
+@mcp.tool(annotations=_DELETE)
 def note_remove(chair: str, note_id: str) -> dict[str, Any]:
     """Delete a mail note this chair authored."""
     root, home = _ctx()
     return _result(chair, note_remove_fn(root, home, chair, note_id))
 
 
-@mcp.tool
+@mcp.tool(annotations=_READ)
 def now_view(chair: str) -> dict[str, Any]:
     """Read NOW.md. Nexus also receives living NOW: sitreps, reconcile, and open mail."""
     root, home = _ctx()

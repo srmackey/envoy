@@ -32,7 +32,7 @@ MCP host snippets: [`install/mcp.json.examples.md`](install/mcp.json.examples.md
 
 Ten tools. The list and what each one changes are in [docs/tools.md](docs/tools.md).
 
-The server does not set `readOnlyHint`, `destructiveHint`, `idempotentHint`, or `openWorldHint`. The side-effects column in that file is the behavior.
+Each tool sets `readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint`. None are open to the network. `note_list` writes an ack of shown the first time the intended chair lists a note, so it is not read-only.
 
 On initialize the server returns a short operating note: every call sends `chair`, and `now_view` is the living board. That note lives in the server. This page does not repeat it.
 
