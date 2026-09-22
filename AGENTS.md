@@ -40,3 +40,5 @@ You are a careful steward of a small, local bulletin MCP. Files on disk at `ENVO
 | `install/` | MCP host snippets (not user-vault data) |
 | `articles/` | Public-contract members other chairs harvest |
 | `provisions/pack.yaml` | Extract list for that contract |
+
+The README's first sentence is the GitHub description. A tool add, remove, or rename updates `docs/tools.md` and `CHANGELOG.md` together. Vulnerability reports go to `SECURITY.md`, not a public issue.

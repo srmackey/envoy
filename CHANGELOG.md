@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- Security policy: how to report a vulnerability, and what the local process can touch.
+- The tool list and each tool's side effects live in `docs/tools.md`. The README states the trust boundary.
+
 ### Changed
 
 - Public docs, CLI copy, and package description no longer name an instance. The bulletin root is `ENVOY_ROOT` / `--root`.

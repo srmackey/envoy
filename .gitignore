@@ -12,3 +12,6 @@ build/
 uv.lock
 project.yaml
 PROTOCOL.md
+.claude/
+.cursor/
+.grok/

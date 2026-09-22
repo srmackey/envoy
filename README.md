@@ -1,6 +1,8 @@
 # Envoy
 
-Envoy is a local MCP server for a bulletin: membership (`MAP.md`), published status, and mail notes. Files on disk stay the record for the map, `NOW.md`, local status, and inbox letters. The vault holds published sitreps and mail notes. Envoy is the bus and the vault. It is not a wiki, not standing guidance, and not the nexus chair. Session briefs are not this server.
+Envoy gives an AI client a local bulletin: who belongs, what each one last published, and the mail notes between them.
+
+Not a wiki, not standing guidance, and not session briefs. It does not deliver inbox letters. Files on disk stay the record. The vault holds published sitreps and mail notes.
 
 A clone can run it against any bulletin root. Wire it into a larger system, or use it on its own.
 
@@ -24,24 +26,35 @@ uv run envoy --root /path/to/bulletin
 | `ENVOY_ROOT` | Bulletin root (required; or pass `--root`) |
 | `ENVOY_HOME` | Vault root (default `~/.envoy`; or pass `--vault`) |
 
-MCP host snippets: [`install/mcp.json.examples.md`](install/mcp.json.examples.md).
+MCP host snippets: [`install/mcp.json.examples.md`](install/mcp.json.examples.md). Cursor and Claude Code use JSON. Grok uses TOML.
 
 ## Tools
 
-| Tool |
-|---|
-| `map_list` |
-| `map_upsert` |
-| `status_put` |
-| `status_get` |
-| `note_post` |
-| `note_list` |
-| `note_ack` |
-| `note_gate` |
-| `note_remove` |
-| `now_view` |
+Ten tools. The list and what each one changes are in [docs/tools.md](docs/tools.md).
+
+The server does not set `readOnlyHint`, `destructiveHint`, `idempotentHint`, or `openWorldHint`. The side-effects column in that file is the behavior.
+
+On initialize the server returns a short operating note: every call sends `chair`, and `now_view` is the living board. That note lives in the server. This page does not repeat it.
 
 How it is structured: [`DESIGN.md`](DESIGN.md). What moved: [`CHANGELOG.md`](CHANGELOG.md).
+
+## Trust boundary
+
+- Transport is stdio. The host starts a local process as the user who launched it.
+- Bulletin files live at `ENVOY_ROOT`. Map tools read and write `MAP.md` there. `now_view` reads `NOW.md`. The server reads a node's identity file and local status when a tool asks for them.
+- Published sitreps and mail notes are JSON under `ENVOY_HOME` (default `~/.envoy`).
+- It does not write inbox letters. A letter is a file some other program puts there.
+- It does not use the network and it does not take a credential.
+
+The same boundary, and how to report a vulnerability, is in [SECURITY.md](SECURITY.md).
+
+## Requirements
+
+- Python 3.11+
+- [uv](https://docs.astral.sh/uv/)
+- FastMCP 2, over stdio
+
+There is no published package. Clone the repository and run it from the checkout.
 
 ## Tests
 
