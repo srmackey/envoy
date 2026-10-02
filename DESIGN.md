@@ -8,7 +8,7 @@ Someone who has never sat here should be able to read this file and see how the 
 
 ## Surfaces
 
-The bulletin root is `ENVOY_ROOT` (or `--root`). Required. The vault is `ENVOY_HOME` (or `--vault`, default `~/.envoy`).
+The bulletin root is `ENVOY_ROOT` (or `--root`). Required. When that folder has `nexus.md`, each nexus folder holds its records in `_envoy/`, and `ENVOY_HOME` is not the record store. When it does not, the vault is `ENVOY_HOME` (or `--vault`, default `~/.envoy`) and `MAP.md` is the roster.
 
 | Surface | Record | Who writes |
 |---|---|---|
@@ -17,11 +17,11 @@ The bulletin root is `ENVOY_ROOT` (or `--root`). Required. The vault is `ENVOY_H
 | Durable board | `NOW.md` at the bulletin root | The nexus chair, when the operator ranks it |
 | Always-on chairs | `always-on.yaml` at the bulletin root | Instance config, not product source |
 | Local status | `_status/STATUS.md` on that chair | That node |
-| Published status | Vault `status/<name>.json` | That node, via status tools |
+| Published status | That nexus's `_envoy/status/<folder basename>.json`. The document's `node` is the address | That node, via status tools |
 | Mail letters | `inbox/` files | Node to the nexus inbox; nexus into a node inbox after the gate |
-| Mail notes | Vault `mail/<id>.json` | Chairs via note tools |
+| Mail notes | That nexus's `_envoy/mail/<id>.json`. A note between two nexuses is stored in both | Chairs via note tools |
 
-`MAP.md` lives on disk at the bulletin root. Envoy does not keep a second copy. Published sitreps and mail notes live only in the vault.
+`MAP.md` lives on disk at the bulletin root when `nexus.md` is absent. Envoy does not keep a second copy of the roster. When `nexus.md` is present, `map_list` reads that nexus's nodes table. A child nexus is named by its own name. A node is `nexus/node`. `map_upsert` updates status and triggers on that same file, for that nexus's own rows. Published sitreps and mail notes live only in the vault.
 
 ## Map
 
@@ -33,7 +33,7 @@ Each row has `name`, `inbox`, `description`, and `status` (`active` / `parked` /
 
 The intended read is always `map_list`. A node caller gets the stored rows. A nexus caller gets the same rows joined with each chair's `project.yaml` when that file exists.
 
-Folder for a map `name`: the bulletin root for `nexus`, else `<root>/<name>/`.
+Folder for a map `name`: when `nexus.md` is absent, the bulletin root for `nexus`, else `<root>/<name>/`. When `nexus.md` is present, the folder is the one that file's path column names.
 
 ## Services
 
@@ -45,7 +45,7 @@ A node opts in. Later message types are more services, not more fields on these 
 
 ## Chair identity
 
-Every tool takes `chair`: `nexus` or a `MAP.md` `name`. Envoy trusts `chair` (local single-user). Unknown mutating chairs fail with `unknown_chair`.
+Every tool takes `chair`. When `nexus.md` is present, `chair` is an address: the nexus's own name, or `nexus/node`. `nexus` still names the root nexus. A bare name that matches one node is that node. An ambiguous bare name is `unknown_chair`. A two-segment address whose second part is itself a nexus does not resolve. When `nexus.md` is absent, `chair` is `nexus` or a `MAP.md` name. Envoy trusts `chair` (local single-user). Unknown chairs fail with `unknown_chair`.
 
 ## Living NOW
 
@@ -70,16 +70,16 @@ Always-on names come from `always-on.yaml`. `now_view` reports `always_on_missin
 
 | Tool | Chair | Does |
 |---|---|---|
-| `map_list` | any | Read `MAP.md`. Nexus caller gets `project.yaml` join |
-| `map_upsert` | nexus | Create or replace one map row; write `MAP.md` |
+| `map_list` | any | Read the roster (`nexus.md` when present, otherwise `MAP.md`). Nexus caller gets `project.yaml` join |
+| `map_upsert` | nexus | Create or replace one row on that nexus's roster |
 | `status_put` | status subscriber | Publish this chair's sitrep. Overwrites that node's vault document |
 | `status_get` | any | Read a published sitrep. A node reads its own. Nexus reads opted-in children |
 | `note_post` | mail subscriber | Create a mail note. Author is forced to `chair` |
 | `note_list` | any | Open mail notes visible to `chair` |
 | `note_ack` | any that can see the note | Set `ack` |
-| `note_gate` | nexus | Set `gate` / `gate_note` on a mail note |
+| `note_gate` | root nexus | Set `gate` / `gate_note` on a mail note |
 | `note_remove` | author | Delete the note |
-| `now_view` | any | Read `NOW.md`. Nexus also receives living NOW |
+| `now_view` | any | Read `NOW.md`. A nexus also receives living NOW for chairs under its folder. The root walks every nexus store |
 
 Every tool result carries a chair-scoped mail notice: `mail_unacked_for_me` and `mail_acked_authored`.
 
@@ -87,7 +87,7 @@ Success includes `"ok": true`. Failures include `"ok": false` and `"error": <tok
 
 ## Out of scope
 
-- Nested nexuses and grandchild map types
+- Addresses with more than one slash
 - Extra services beyond status and mail
 - Filtering or redacting published bodies
 - Remote multi-user auth

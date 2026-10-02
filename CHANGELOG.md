@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
+- When `nexus.md` is at the bulletin root, `chair` is an address and each nexus folder holds `_envoy/`. `nexus` still names the root. A unique bare name resolves. An ambiguous one is `unknown_chair`. Mail between nexuses is stored in both nexus homes. `map_list` and `map_upsert` use that nexus's `nexus.md`. Without the file, `MAP.md` and `ENVOY_HOME` are unchanged.
 - Security policy: how to report a vulnerability, and what the local process can touch.
 - The tool list and each tool's side effects live in `docs/tools.md`. The README states the trust boundary.
 

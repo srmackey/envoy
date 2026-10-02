@@ -7,6 +7,7 @@ from typing import Any
 
 import yaml
 
+from envoy.mapfile import nexus_homes, open_chair
 from envoy.notes_store import note_list
 from envoy.status_store import status_get
 
@@ -93,7 +94,8 @@ def now_view(root: Path, home: Path, chair: str) -> dict[str, Any]:
         return {"ok": False, "error": "missing_now"}
     parsed = parse_now(path.read_text(encoding="utf-8"))
     result: dict[str, Any] = {"ok": True, "now": parsed}
-    if chair != "nexus":
+    caller = open_chair(root, chair, home)
+    if caller is None or not caller.is_nexus:
         return result
     reconcile: list[dict[str, Any]] = []
     for section in ("this_week", "later"):
@@ -101,7 +103,7 @@ def now_view(root: Path, home: Path, chair: str) -> dict[str, Any]:
             node = item["node"]
             if node is None:
                 continue
-            got = status_get(root, home, chair="nexus", node=node)
+            got = status_get(root, home, chair=chair, node=node)
             document = got.get("document") if got.get("ok") else None
             state, forefront = _state(item["text"], document)
             reconcile.append({
@@ -112,8 +114,16 @@ def now_view(root: Path, home: Path, chair: str) -> dict[str, Any]:
                 "forefront": forefront,
             })
     forefronts: list[dict[str, Any]] = []
-    status_dir = home / "status"
-    if status_dir.is_dir():
+    if caller.legacy:
+        homes = [home]
+    elif caller.is_root:
+        homes = nexus_homes(root)
+    else:
+        homes = [caller.home]
+    for status_home in homes:
+        status_dir = status_home / "status"
+        if not status_dir.is_dir():
+            continue
         for file in sorted(status_dir.glob("*.json")):
             document = json.loads(file.read_text(encoding="utf-8"))
             row = {
@@ -125,7 +135,7 @@ def now_view(root: Path, home: Path, chair: str) -> dict[str, Any]:
                 row["repo"] = document["repo"]
             forefronts.append(row)
     week_nodes = {item["node"] for item in parsed["this_week"] if item["node"]}
-    mail = note_list(root, home, chair="nexus")
+    mail = note_list(root, home, chair=chair)
     result["reconcile"] = reconcile
     result["forefronts"] = forefronts
     result["mail"] = mail.get("notes") or []

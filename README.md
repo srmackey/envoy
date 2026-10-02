@@ -9,8 +9,8 @@ A clone can run it against any bulletin root. Wire it into a larger system, or u
 ## Stack
 
 - Python 3.11+, `uv`, FastMCP, Pydantic v2, PyYAML
-- `MAP.md` and `NOW.md` at the bulletin root (`ENVOY_ROOT`)
-- Vault JSON under `ENVOY_HOME` (default `~/.envoy`)
+- `MAP.md` and `NOW.md` at the bulletin root (`ENVOY_ROOT`). When that folder has `nexus.md`, that file is the roster and each nexus folder holds `_envoy/`.
+- Vault JSON under `ENVOY_HOME` (default `~/.envoy`) when `nexus.md` is absent. Otherwise the records live in each nexus's `_envoy/`.
 - Tests with pytest under `tests/`
 
 ## Setup
@@ -24,7 +24,7 @@ uv run envoy --root /path/to/bulletin
 | Variable | Role |
 |---|---|
 | `ENVOY_ROOT` | Bulletin root (required; or pass `--root`) |
-| `ENVOY_HOME` | Vault root (default `~/.envoy`; or pass `--vault`) |
+| `ENVOY_HOME` | Record store when the bulletin root has no `nexus.md` (default `~/.envoy`; or pass `--vault`) |
 
 MCP host snippets: [`install/mcp.json.examples.md`](install/mcp.json.examples.md). Cursor and Claude Code use JSON. Grok uses TOML.
 
@@ -42,7 +42,7 @@ How it is structured: [`DESIGN.md`](DESIGN.md). What moved: [`CHANGELOG.md`](CHA
 
 - Transport is stdio. The host starts a local process as the user who launched it.
 - Bulletin files live at `ENVOY_ROOT`. Map tools read and write `MAP.md` there. `now_view` reads `NOW.md`. The server reads a node's identity file and local status when a tool asks for them.
-- Published sitreps and mail notes are JSON under `ENVOY_HOME` (default `~/.envoy`).
+- Published sitreps and mail notes are JSON. Without `nexus.md` they live under `ENVOY_HOME` (default `~/.envoy`). With `nexus.md`, each nexus folder holds them in `_envoy/`.
 - It does not write inbox letters. A letter is a file some other program puts there.
 - It does not use the network and it does not take a credential.
 
