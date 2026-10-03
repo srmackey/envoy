@@ -22,6 +22,6 @@ Every tool sets `openWorldHint` false. None of these tools use the network.
 | `note_ack` | Write | Set the ack on a note this chair can see. | Writes that note. |
 | `note_gate` | Write | Set the gate on a note. Nexus only. | Writes that note. |
 | `note_remove` | Delete | Delete a note this chair authored. | Removes that note from the vault. A second call finds it already gone. |
-| `now_view` | Read | Read the board. A nexus caller also gets sitreps, reconcile, and open mail. | Reads `NOW.md` and, for nexus, the vault. |
+| `now_view` | Read | Read the board of the nexus this chair sits in. A nexus caller also gets direct-chair sitreps, reconcile, and open mail. | Reads `FOCUS.md` and, for nexus, the vault. |
 
 A tool add, remove, or rename updates this file and `CHANGELOG.md` in the same change.

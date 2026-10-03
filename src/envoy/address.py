@@ -21,6 +21,7 @@ class NodeRow:
     sensitive: bool
     services: tuple[str, ...]
     triggers: str
+    always_on: bool = False
 
 
 @dataclass(frozen=True)
@@ -30,6 +31,7 @@ class Nexus:
     parent: str | None
     sensitive: bool
     nodes: tuple[NodeRow, ...]
+    focus: str | None = None
 
 
 @dataclass(frozen=True)
@@ -70,6 +72,7 @@ def read_nexus(folder: Path) -> Nexus | None:
     text = path.read_text(encoding="utf-8")
     name = None
     parent = None
+    focus = None
     for line in text.splitlines():
         stripped = line.strip()
         lowered = stripped.lower()
@@ -77,6 +80,8 @@ def read_nexus(folder: Path) -> Nexus | None:
             name = stripped.split(":", 1)[1].strip()
         elif lowered.startswith("parent:"):
             parent = stripped.split(":", 1)[1].strip() or None
+        elif lowered.startswith("focus:"):
+            focus = stripped.split(":", 1)[1].strip() or None
     if not name:
         return None
     return Nexus(
@@ -85,6 +90,7 @@ def read_nexus(folder: Path) -> Nexus | None:
         parent=parent,
         sensitive=False,
         nodes=tuple(_nodes(text)),
+        focus=focus,
     )
 
 
@@ -113,6 +119,7 @@ def load_tree(root: Path) -> Tree | None:
                     parent=current.name,
                     sensitive=node.sensitive,
                     nodes=child.nodes,
+                    focus=child.focus,
                 )
             )
     return Tree(root=Path(root).resolve(), top=nexuses[top.name.casefold()], nexuses=nexuses)
@@ -273,6 +280,7 @@ def _nodes(text: str) -> list[NodeRow]:
     i_sensitive = column("sensitive")
     i_services = column("services")
     i_triggers = column("triggers")
+    i_always = column("always-on", "always_on")
     rows: list[NodeRow] = []
     for line in lines[header_at + 1 :]:
         cells = _cells(line)
@@ -305,6 +313,7 @@ def _nodes(text: str) -> list[NodeRow]:
                 sensitive=take(i_sensitive).casefold() in {"yes", "true"},
                 services=services,
                 triggers=take(i_triggers),
+                always_on=take(i_always).casefold() in {"yes", "true"},
             )
         )
     return rows

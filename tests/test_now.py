@@ -45,7 +45,7 @@ def _seed(root: Path) -> None:
             "services": ["status", "mail"],
         },
     )
-    (root / "NOW.md").write_text(NOW, encoding="utf-8")
+    (root / "FOCUS.md").write_text(NOW, encoding="utf-8")
 
 
 def test_now_view_node_gets_only_durable(root: Path, home: Path) -> None:
@@ -88,8 +88,8 @@ def test_now_view_always_on_empty_when_file_missing(root: Path, home: Path) -> N
             {"name": "harbor", "inbox": True, "description": "Harbor", "status": "active"},
         ],
     )
-    (root / "NOW.md").write_text(
-        "# NOW\nupdated: 2026-08-25\n\n## This week\n\n1. **Chart the harbor** · due: none · node: harbor\n",
+    (root / "FOCUS.md").write_text(
+        "# FOCUS\nupdated: 2026-08-25\n\n## This week\n\n1. **Chart the harbor** · due: none · node: harbor\n",
         encoding="utf-8",
     )
     got = now_view(root, home, chair="nexus")
@@ -146,3 +146,85 @@ def test_now_view_satisfied_when_board_text_in_repo(root: Path, home: Path) -> N
     row = next(r for r in got["reconcile"] if r["text"] == "Chart the harbor")
     assert row["state"] == "satisfied"
     assert row["forefront"] == "Moor the river"
+
+
+def test_now_view_reads_legacy_file_when_focus_is_absent(root: Path, home: Path) -> None:
+    _seed(root)
+    (root / "FOCUS.md").unlink()
+    (root / "NOW.md").write_text(NOW, encoding="utf-8")
+    got = now_view(root, home, chair="harbor")
+    assert got["ok"] is True
+    assert got["now"]["this_week"][0]["text"] == "Chart the harbor"
+
+
+def test_node_reads_its_nexus_board(tmp_path: Path, home: Path) -> None:
+    root = tmp_path / "coast"
+    root.mkdir()
+    (root / "nexus.md").write_text(
+        "\n".join([
+            "# nexus: coast",
+            "focus: harbor",
+            "",
+            "| Node | Path | Kind | Status | Sensitive | Always-on | Services | Triggers |",
+            "|---|---|---|---|---|---|---|---|",
+            "| harbor | harbor/ | nexus | active | no | no | status, mail | inner |",
+            "| ledger | ledger/ | node | active | no | yes | status | tide book |",
+        ]) + "\n",
+        encoding="utf-8",
+    )
+    harbor = root / "harbor"
+    harbor.mkdir()
+    (harbor / "nexus.md").write_text(
+        "\n".join([
+            "# nexus: harbor",
+            "parent: coast",
+            "",
+            "| Node | Path | Kind | Status | Sensitive | Always-on | Services | Triggers |",
+            "|---|---|---|---|---|---|---|---|",
+            "| dock | dock/ | node | active | no | yes | status, mail | the dock |",
+            "| skiff | skiff/ | node | active | no | yes | status | the skiff |",
+        ]) + "\n",
+        encoding="utf-8",
+    )
+    (harbor / "dock").mkdir()
+    for folder in (root / "ledger", harbor / "dock"):
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "project.yaml").write_text(
+            "services:\n- status\n- mail\n",
+            encoding="utf-8",
+        )
+    (root / "FOCUS.md").write_text(
+        "# FOCUS\nupdated: 2026-10-03\n\n## This week\n\n1. **Mind the ledger** · due: none · node: ledger\n",
+        encoding="utf-8",
+    )
+    (harbor / "FOCUS.md").write_text(
+        "# FOCUS\nupdated: 2026-10-03\n\n## This week\n\n1. **Paint the dock** · due: none · node: dock\n",
+        encoding="utf-8",
+    )
+    status_put(
+        root, home, chair="harbor/dock",
+        forefront="Paint the dock",
+        where_i_left_off=["still painting"],
+        next_steps=[],
+        open_loops=[],
+    )
+    status_put(
+        root, home, chair="ledger",
+        forefront="Count the tide",
+        where_i_left_off=["counted"],
+        next_steps=[],
+        open_loops=[],
+    )
+    node = now_view(root, home, chair="harbor/dock")
+    assert node["ok"] is True
+    assert "reconcile" not in node
+    assert node["now"]["this_week"][0]["text"] == "Paint the dock"
+    parent = now_view(root, home, chair="coast")
+    assert parent["focus"]["node"] == "harbor"
+    assert parent["focus"]["this_week"][0]["text"] == "Paint the dock"
+    assert parent["now"]["this_week"][0]["text"] == "Mind the ledger"
+    names = {row["node"] for row in parent["forefronts"]}
+    assert "harbor/dock" not in names
+    assert any(name and name.endswith("ledger") for name in names)
+    missing = {item.casefold() for item in parent["always_on_missing"]}
+    assert missing == {"skiff"}

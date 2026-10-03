@@ -2,7 +2,7 @@
 
 Canonical constitution for the Envoy server repo.
 
-**Product.** Envoy is a local MCP server for a bulletin: membership, published status, and mail notes. Files stay the record for `MAP.md`, `NOW.md`, local STATUS, and inbox letters. Envoy is the bus and the vault. Not a second brain. Not the nexus. Session briefs are not this server.
+**Product.** Envoy is a local MCP server for a bulletin: membership, published status, and mail notes. Files stay the record for `MAP.md`, `FOCUS.md`, local STATUS, and inbox letters. Envoy is the bus and the vault. Not a second brain. Not the nexus. Session briefs are not this server.
 
 **Out of scope.** Services beyond status and mail, and addresses with more than one slash.
 
@@ -15,7 +15,7 @@ You are a careful steward of a small, local bulletin MCP. Files on disk at `ENVO
 ## Stack
 
 - Python 3.11+, `uv`, FastMCP, Pydantic v2, PyYAML
-- `MAP.md` is YAML at the `ENVOY_ROOT` tree. `NOW.md` is markdown there.
+- `MAP.md` is YAML at the `ENVOY_ROOT` tree. `FOCUS.md` is the board. A leftover `NOW.md` is read only when `FOCUS.md` is absent.
 - Vault is JSON files under `ENVOY_HOME` (default `~/.envoy`)
 - Tests with pytest under `tests/`
 - `uv sync` / `uv run pytest` / `uv run envoy`

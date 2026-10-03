@@ -14,8 +14,8 @@ The bulletin root is `ENVOY_ROOT` (or `--root`). Required. When that folder has 
 |---|---|---|
 | Map | `MAP.md` at the bulletin root | Envoy, when the nexus chair calls map tools |
 | Node identity | `<node>/project.yaml`; nexus: `<root>/project.yaml` | That chair |
-| Durable board | `NOW.md` at the bulletin root | The nexus chair, when the operator ranks it |
-| Always-on chairs | `always-on.yaml` at the bulletin root | Instance config, not product source |
+| Durable board | `FOCUS.md` at the nexus root. Without `nexus.md`, `FOCUS.md` at the bulletin root. A leftover `NOW.md` is read only when `FOCUS.md` is absent | The nexus chair, when the operator ranks it |
+| Always-on chairs | The Always-on column in `nexus.md`. Without that file, `always-on.yaml` at the bulletin root | Instance config, not product source |
 | Local status | `_status/STATUS.md` on that chair | That node |
 | Published status | That nexus's `_envoy/status/<folder basename>.json`. The document's `node` is the address | That node, via status tools |
 | Mail letters | `inbox/` files | Node to the nexus inbox; nexus into a node inbox after the gate |
@@ -49,7 +49,7 @@ Every tool takes `chair`. When `nexus.md` is present, `chair` is an address: the
 
 ## Living NOW
 
-Durable `NOW.md` changes only when the operator ranks it. Living NOW is a nexus query: that file, plus published sitreps, plus open mail notes. The hole in the board stays empty until the operator steers.
+Durable `FOCUS.md` changes only when the operator ranks it. Living NOW is a nexus query: that file, plus published sitreps of this nexus's direct chairs, plus open mail notes. The hole in the board stays empty until the operator steers. A node call returns the board of the nexus that contains the node. When `nexus.md` sets `focus:` to a direct child, the result includes that child's board as `focus`, and that child is left out of the chair lines.
 
 Reconcile (nexus, against a ranked line at `node: A`):
 
@@ -64,7 +64,7 @@ Normalize whitespace. Board substance is the one-line text of the ranked item.
 
 Envoy does not infer synonyms. Leftover mismatch is `unaccounted`.
 
-Always-on names come from `always-on.yaml`. `now_view` reports `always_on_missing` for names listed there with no This-week line. It does not invent lines.
+Always-on names come from the Always-on column of the nexus whose board is on screen. Without `nexus.md`, they come from `always-on.yaml`. `now_view` reports `always_on_missing` for names with no This-week line on that board. It does not invent lines.
 
 ## Tools
 
@@ -79,7 +79,7 @@ Always-on names come from `always-on.yaml`. `now_view` reports `always_on_missin
 | `note_ack` | any that can see the note | Set `ack` |
 | `note_gate` | root nexus | Set `gate` / `gate_note` on a mail note |
 | `note_remove` | author | Delete the note |
-| `now_view` | any | Read `NOW.md`. A nexus also receives living NOW for chairs under its folder. The root walks every nexus store |
+| `now_view` | any | Read `FOCUS.md` for the nexus this chair sits in. A nexus also receives living NOW for its direct chairs |
 
 Every tool result carries a chair-scoped mail notice: `mail_unacked_for_me` and `mail_acked_authored`.
 
