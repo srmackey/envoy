@@ -57,6 +57,6 @@ If Envoy is down, skip ack. The pending file in `inbox/` still holds the work.
 
 **Not settled by this contract:** the letters. Processing an inbox stays on command only. A settle run clears bells, never mail.
 
-A chair in the `sensitive` operator class takes `methodology/envoy-mail-discreet` instead of this article, never beside it. That chair receives on these terms and never sends. `guarded` is not that class.
+A chair in the `sensitive` operator class takes `methodology/envoy-mail-discreet` instead of this article, never beside it. That article is the guard: a letter has to pass the same test that chair's constitution applies to saving a file. `guarded` is not that class.
 
 **Class: single-system.** Groups with Envoy. The mail gate it names is composition on the nexus chair.
