@@ -2,6 +2,8 @@
 
 Envoy needs a bulletin root and a vault. Set `ENVOY_ROOT` (required) and `ENVOY_HOME` (default `~/.envoy` on POSIX, or pass `--vault`).
 
+When `ENVOY_ROOT` contains `nexus.md`, that file is the roster and each nexus folder holds `_envoy/`. `ENVOY_HOME` is the record store only when `nexus.md` is absent.
+
 Replace the paths below with your checkout and bulletin root.
 
 ## Cursor (`~/.cursor/mcp.json` or project `.cursor/mcp.json`)

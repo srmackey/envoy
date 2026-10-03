@@ -7,6 +7,8 @@ from typing import Any
 
 import yaml
 
+from envoy.address import Nexus, load_tree
+from envoy.mapfile import open_chair
 from envoy.notes_store import note_list
 from envoy.status_store import status_get
 
@@ -87,35 +89,110 @@ def _state(board_text: str, document: dict[str, Any] | None) -> tuple[str, str |
     return "unaccounted", forefront
 
 
-def now_view(root: Path, home: Path, chair: str) -> dict[str, Any]:
-    path = root / "NOW.md"
-    if not path.is_file():
-        return {"ok": False, "error": "missing_now"}
-    parsed = parse_now(path.read_text(encoding="utf-8"))
-    result: dict[str, Any] = {"ok": True, "now": parsed}
-    if chair != "nexus":
-        return result
-    reconcile: list[dict[str, Any]] = []
+def board_file(folder: Path) -> Path | None:
+    focus = folder / "FOCUS.md"
+    if focus.is_file():
+        return focus
+    legacy = folder / "NOW.md"
+    if legacy.is_file():
+        return legacy
+    return None
+
+
+def _read_board(folder: Path) -> dict[str, Any] | None:
+    path = board_file(folder)
+    if path is None:
+        return None
+    return parse_now(path.read_text(encoding="utf-8"))
+
+
+def _week_nodes(parsed: dict[str, Any]) -> set[str]:
+    return {item["node"].casefold() for item in parsed["this_week"] if item["node"]}
+
+
+def _reconcile(
+    root: Path,
+    home: Path,
+    chair: str,
+    parsed: dict[str, Any],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     for section in ("this_week", "later"):
         for item in parsed[section]:
             node = item["node"]
             if node is None:
                 continue
-            got = status_get(root, home, chair="nexus", node=node)
+            got = status_get(root, home, chair=chair, node=node)
             document = got.get("document") if got.get("ok") else None
             state, forefront = _state(item["text"], document)
-            reconcile.append({
+            rows.append({
                 "text": item["text"],
                 "node": node,
                 "section": section,
                 "state": state,
                 "forefront": forefront,
             })
+    return rows
+
+
+def _missing(names: list[str], parsed: dict[str, Any]) -> list[str]:
+    week = _week_nodes(parsed)
+    return [name for name in names if name.casefold() not in week]
+
+
+def _always_on_rows(nexus: Nexus) -> list[str]:
+    return [node.name for node in nexus.nodes if node.always_on]
+
+
+def now_view(root: Path, home: Path, chair: str) -> dict[str, Any]:
+    caller = open_chair(root, chair, home)
+    if caller is None:
+        return {"ok": False, "error": "unknown_chair"}
+    tree = None if caller.legacy else load_tree(root)
+    board_dir = root if caller.legacy else caller.home.parent
+    parsed = _read_board(board_dir)
+    if parsed is None:
+        return {"ok": False, "error": "missing_now"}
+    result: dict[str, Any] = {"ok": True, "now": parsed}
+    if not caller.is_nexus:
+        return result
+    nexus = None if tree is None else tree.nexuses.get(caller.address)
+    borrowed: dict[str, Any] | None = None
+    child: Nexus | None = None
+    if nexus is not None and nexus.focus and tree is not None:
+        child = tree.nexuses.get(nexus.focus.casefold())
+        if child is not None:
+            borrowed = _read_board(child.folder)
+            if borrowed is not None:
+                result["focus"] = {"node": child.name, **borrowed}
+        else:
+            for node in nexus.nodes:
+                if node.name.casefold() != nexus.focus.casefold() or node.kind == "nexus":
+                    continue
+                folder = nexus.folder / node.path
+                borrowed = _read_board(folder)
+                if borrowed is not None:
+                    result["focus"] = {"node": node.name, **borrowed}
+                break
+    reconcile = _reconcile(root, home, chair, parsed)
+    if borrowed is not None:
+        reconcile = _reconcile(root, home, chair, borrowed) + reconcile
     forefronts: list[dict[str, Any]] = []
-    status_dir = home / "status"
+    status_dir = (home if caller.legacy else caller.home) / "status"
+    focus_name = nexus.focus.casefold() if nexus is not None and nexus.focus else None
+    direct: set[str] = set()
+    if nexus is not None:
+        direct = {
+            node.name.casefold()
+            for node in nexus.nodes
+            if node.name.casefold() != focus_name
+        }
     if status_dir.is_dir():
         for file in sorted(status_dir.glob("*.json")):
             document = json.loads(file.read_text(encoding="utf-8"))
+            node_name = str(document.get("node") or "")
+            if nexus is not None and not _is_direct(node_name, caller.address, direct):
+                continue
             row = {
                 "node": document.get("node"),
                 "forefront": document.get("forefront"),
@@ -124,12 +201,24 @@ def now_view(root: Path, home: Path, chair: str) -> dict[str, Any]:
             if document.get("repo"):
                 row["repo"] = document["repo"]
             forefronts.append(row)
-    week_nodes = {item["node"] for item in parsed["this_week"] if item["node"]}
-    mail = note_list(root, home, chair="nexus")
+    missing: list[str] = []
+    if caller.legacy or nexus is None:
+        missing = _missing(load_always_on(root), parsed)
+    else:
+        if child is not None and borrowed is not None:
+            missing.extend(_missing(_always_on_rows(child), borrowed))
+        missing.extend(_missing(_always_on_rows(nexus), parsed))
+    mail = note_list(root, home, chair=chair)
     result["reconcile"] = reconcile
     result["forefronts"] = forefronts
     result["mail"] = mail.get("notes") or []
-    result["always_on_missing"] = [
-        name for name in load_always_on(root) if name not in week_nodes
-    ]
+    result["always_on_missing"] = missing
     return result
+
+
+def _is_direct(node_name: str, nexus_name: str, names: set[str]) -> bool:
+    node = node_name.casefold()
+    if node in names:
+        return True
+    prefix = nexus_name.casefold() + "/"
+    return node.startswith(prefix) and node[len(prefix):] in names

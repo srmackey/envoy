@@ -12,7 +12,11 @@ def build_parser() -> argparse.ArgumentParser:
         description="Envoy MCP server: bulletin (map, published status, mail notes).",
     )
     parser.add_argument("--root", default=None, help="Bulletin root. Or set ENVOY_ROOT.")
-    parser.add_argument("--vault", default=None, help="Vault root. Or set ENVOY_HOME. Default ~/.envoy.")
+    parser.add_argument(
+        "--vault",
+        default=None,
+        help="Record store when the bulletin root has no nexus.md. Or set ENVOY_HOME. Default ~/.envoy. When nexus.md is present, each nexus folder holds _envoy/.",
+    )
     return parser
 
 

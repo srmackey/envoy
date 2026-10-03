@@ -9,6 +9,7 @@ from fastmcp import FastMCP
 
 from envoy.mapfile import map_list as map_list_fn
 from envoy.mapfile import map_upsert as map_upsert_fn
+from envoy.mapfile import open_chair
 from envoy.notes_store import note_ack as note_ack_fn
 from envoy.notes_store import note_gate as note_gate_fn
 from envoy.notes_store import note_list as note_list_fn
@@ -20,7 +21,7 @@ from envoy.status_store import status_get as status_get_fn
 from envoy.status_store import status_put as status_put_fn
 
 INSTRUCTIONS = """\
-Envoy is a local bulletin MCP. Files stay the record for MAP.md, NOW.md, local STATUS, and inbox letters. Envoy stores published sitreps and mail notes. Every call sends chair (nexus or a MAP.md name). Session living NOW is now_view. map_list is the roster API. Do not poll sibling STATUS files once this server is live. Session briefs live on the chair-memory store, not here.
+Envoy is a local bulletin MCP. Files stay the record for the roster, FOCUS.md, local STATUS, and inbox letters. Envoy stores published sitreps and mail notes. Every call sends chair. When nexus.md is at the bulletin root, chair is an address: the nexus's own name, or nexus/node. Each nexus folder holds that nexus's records in _envoy/. The record name stays the folder basename. chair nexus still names the root nexus. A bare name that matches one node is that node. When nexus.md is absent, chair is nexus or a MAP.md name and records stay in ENVOY_HOME. Session living NOW is now_view. map_list is the roster API. Do not poll sibling STATUS files once this server is live. Session briefs live on the chair-memory store, not here.
 """
 
 mcp = FastMCP("Envoy", instructions=INSTRUCTIONS)
@@ -68,8 +69,11 @@ def _ctx() -> tuple[Path, Path]:
 
 
 def _result(chair: str, payload: dict[str, Any]) -> dict[str, Any]:
-    _, home = _ctx()
-    return with_mail_notice(payload, home, chair)
+    root, home = _ctx()
+    ref = open_chair(root, chair, home)
+    if ref is None:
+        return with_mail_notice(payload, home, chair)
+    return with_mail_notice(payload, ref.home, ref.address)
 
 
 @mcp.tool(annotations=_READ)
@@ -187,7 +191,7 @@ def note_remove(chair: str, note_id: str) -> dict[str, Any]:
 
 @mcp.tool(annotations=_READ)
 def now_view(chair: str) -> dict[str, Any]:
-    """Read NOW.md. Nexus also receives living NOW: sitreps, reconcile, and open mail."""
+    """Read FOCUS.md for this chair's nexus. A nexus also receives living NOW."""
     root, home = _ctx()
     return _result(chair, now_view_fn(root, home, chair))
 

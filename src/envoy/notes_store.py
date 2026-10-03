@@ -6,7 +6,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from envoy.mapfile import known_chairs, load_project
+from envoy.address import load_tree
+from envoy.mapfile import Chair, load_project, nexus_homes, open_chair
 
 GATES = {"deliver", "hold", "foul"}
 
@@ -43,20 +44,59 @@ def _save(home: Path, note: dict[str, Any]) -> None:
     path.write_text(json.dumps(note, indent=2), encoding="utf-8")
 
 
-def _can_see(chair: str, note: dict[str, Any]) -> bool:
-    return (
-        chair == "nexus"
-        or note.get("author") == chair
-        or note.get("intended_for") == chair
+def _names_match(caller: Chair, stored: object) -> bool:
+    other = str(stored or "").strip().casefold()
+    if not other:
+        return False
+    address = caller.address.casefold()
+    if address == other:
+        return True
+    if caller.is_root and other == "nexus":
+        return True
+    return address.endswith("/" + other) or other.endswith("/" + address)
+
+
+def _can_see(caller: Chair, note: dict[str, Any]) -> bool:
+    if caller.is_root or (caller.legacy and caller.address == "nexus"):
+        return True
+    return _names_match(caller, note.get("author")) or _names_match(
+        caller, note.get("intended_for")
     )
 
 
-def _public(note: dict[str, Any], chair: str) -> dict[str, Any]:
+def _public(note: dict[str, Any], caller: Chair) -> dict[str, Any]:
     item = dict(note)
-    if chair != "nexus":
+    if not (caller.is_root or (caller.legacy and caller.address == "nexus")):
         item.pop("gate", None)
         item.pop("gate_note", None)
     return item
+
+
+def _note_file(home: Path, note_id: str) -> Path:
+    return home / "mail" / f"{note_id}.json"
+
+
+def _write_note(root: Path, default_home: Path, note: dict[str, Any]) -> None:
+    homes: list[Path] = []
+    if load_tree(root) is None:
+        homes = [default_home]
+    else:
+        for who in (note.get("author"), note.get("intended_for")):
+            ref = open_chair(root, str(who or ""), default_home)
+            if ref is not None and ref.home not in homes:
+                homes.append(ref.home)
+        if not homes:
+            homes = [default_home]
+    for home in homes:
+        _save(home, note)
+
+
+def _homes_with_note(root: Path, default_home: Path, note_id: str) -> list[Path]:
+    if load_tree(root) is None:
+        homes = [default_home]
+    else:
+        homes = nexus_homes(root)
+    return [home for home in homes if _note_file(home, note_id).is_file()]
 
 
 def _parse_time(value: str) -> datetime:
@@ -101,9 +141,9 @@ def mail_outstanding(
     acked_authored: list[str] = []
     for note in _iter_open_mail(home, current):
         note_id = str(note["id"])
-        if note.get("intended_for") == chair and not (note.get("ack") or None):
+        if _string_match(chair, note.get("intended_for")) and not (note.get("ack") or None):
             unacked.append(note_id)
-        if note.get("author") == chair and (note.get("ack") or None):
+        if _string_match(chair, note.get("author")) and (note.get("ack") or None):
             acked_authored.append(note_id)
     return {
         "mail_unacked_for_me": unacked,
@@ -124,6 +164,18 @@ def with_mail_notice(
     return merged
 
 
+def _string_match(caller: str, stored: object) -> bool:
+    other = str(stored or "").strip().casefold()
+    left = caller.strip().casefold()
+    if not other:
+        return False
+    if left == other:
+        return True
+    if left == "nexus" and other == "nexus":
+        return True
+    return left.endswith("/" + other) or other.endswith("/" + left)
+
+
 def note_post(
     root: Path,
     home: Path,
@@ -132,22 +184,24 @@ def note_post(
     inbox: str,
     why: str,
 ) -> dict[str, Any]:
-    if chair not in known_chairs(root):
+    caller = open_chair(root, chair, home)
+    if caller is None:
         return {"ok": False, "error": "unknown_chair"}
-    if not _subscribed(root, chair, "mail"):
+    if not _subscribed(root, caller.address, "mail"):
         return {"ok": False, "error": "not_subscribed"}
+    dest = open_chair(root, intended_for, home)
     note = {
         "id": uuid.uuid4().hex,
         "kind": "mail",
-        "author": chair,
+        "author": caller.address,
         "created": _now(),
         "ack": None,
-        "intended_for": intended_for,
+        "intended_for": dest.address if dest is not None else intended_for,
         "inbox": inbox,
         "why": why,
     }
-    _save(home, note)
-    return {"ok": True, "note": _public(note, chair)}
+    _write_note(root, home, note)
+    return {"ok": True, "note": _public(note, caller)}
 
 
 def note_list(
@@ -157,19 +211,20 @@ def note_list(
     *,
     now: datetime | None = None,
 ) -> dict[str, Any]:
-    if chair not in known_chairs(root):
+    caller = open_chair(root, chair, home)
+    if caller is None:
         return {"ok": False, "error": "unknown_chair"}
     current = now or datetime.now(timezone.utc)
     notes: list[dict[str, Any]] = []
-    for note in _iter_open_mail(home, current):
-        if not _can_see(chair, note):
+    for note in _iter_open_mail(caller.home, current):
+        if not _can_see(caller, note):
             continue
-        # Listing as the intended chair is awareness: ack shown. Nexus listing
-        # other chairs' mail does not match intended_for and is not touched.
-        if note.get("intended_for") == chair and not (note.get("ack") or None):
-            note["ack"] = {"chair": chair, "time": _now(), "action": "shown"}
-            _save(home, note)
-        notes.append(_public(note, chair))
+        # Listing as the intended chair is awareness: ack shown. A nexus
+        # listing other chairs' mail does not match intended_for and is not touched.
+        if _names_match(caller, note.get("intended_for")) and not (note.get("ack") or None):
+            note["ack"] = {"chair": caller.address, "time": _now(), "action": "shown"}
+            _write_note(root, home, note)
+        notes.append(_public(note, caller))
     return {"ok": True, "notes": notes}
 
 
@@ -180,18 +235,22 @@ def note_ack(
     note_id: str,
     action: str,
 ) -> dict[str, Any]:
-    if chair not in known_chairs(root):
+    caller = open_chair(root, chair, home)
+    if caller is None:
         return {"ok": False, "error": "unknown_chair"}
     if not str(action).strip():
         return {"ok": False, "error": "invalid_payload"}
-    note = _load(home, note_id)
+    homes = _homes_with_note(root, home, note_id)
+    if not homes:
+        return {"ok": False, "error": "missing_note"}
+    note = _load(homes[0], note_id)
     if note is None:
         return {"ok": False, "error": "missing_note"}
-    if not _can_see(chair, note):
+    if not _can_see(caller, note):
         return {"ok": False, "error": "forbidden"}
-    note["ack"] = {"chair": chair, "time": _now(), "action": action}
-    _save(home, note)
-    return {"ok": True, "note": _public(note, chair)}
+    note["ack"] = {"chair": caller.address, "time": _now(), "action": action}
+    _write_note(root, home, note)
+    return {"ok": True, "note": _public(note, caller)}
 
 
 def note_gate(
@@ -202,13 +261,17 @@ def note_gate(
     gate: str,
     gate_note: str | None = None,
 ) -> dict[str, Any]:
-    if chair != "nexus":
-        if chair not in known_chairs(root):
-            return {"ok": False, "error": "unknown_chair"}
+    caller = open_chair(root, chair, home)
+    if caller is None:
+        return {"ok": False, "error": "unknown_chair"}
+    if not caller.is_root:
         return {"ok": False, "error": "nexus_only"}
     if gate not in GATES:
         return {"ok": False, "error": "invalid_payload"}
-    note = _load(home, note_id)
+    homes = _homes_with_note(root, home, note_id)
+    if not homes:
+        return {"ok": False, "error": "missing_note"}
+    note = _load(homes[0], note_id)
     if note is None:
         return {"ok": False, "error": "missing_note"}
     note["gate"] = gate
@@ -216,7 +279,7 @@ def note_gate(
         note["gate_note"] = gate_note
     else:
         note.pop("gate_note", None)
-    _save(home, note)
+    _write_note(root, home, note)
     return {"ok": True, "note": note}
 
 
@@ -226,12 +289,17 @@ def note_remove(
     chair: str,
     note_id: str,
 ) -> dict[str, Any]:
-    if chair not in known_chairs(root):
+    caller = open_chair(root, chair, home)
+    if caller is None:
         return {"ok": False, "error": "unknown_chair"}
-    note = _load(home, note_id)
+    homes = _homes_with_note(root, home, note_id)
+    if not homes:
+        return {"ok": False, "error": "missing_note"}
+    note = _load(homes[0], note_id)
     if note is None:
         return {"ok": False, "error": "missing_note"}
-    if note.get("author") != chair:
+    if not _names_match(caller, note.get("author")):
         return {"ok": False, "error": "not_author"}
-    _path(home, note_id).unlink()
+    for found in homes:
+        _note_file(found, note_id).unlink(missing_ok=True)
     return {"ok": True, "id": note_id}
