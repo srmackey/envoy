@@ -26,3 +26,13 @@ For each name in `enabled`:
 Skip a definition you cannot apply, say which one, and continue with the other names.
 
 Project-scoped `instructions` entries are not this product's. Leave them for the product that writes a project protocol.
+
+## Maintenance
+
+Add, remove, and a moved checkout all run the pass above.
+
+**Add.** Put the name on `enabled`. Run this pass, and the same pass for each other public product already installed. The pass writes a missing definition before it upserts. This product does not write a project protocol.
+
+**Remove.** Take the name off `enabled`. Dry-run first. For that name's server entries, list this product's key under `key`. Write nothing. This product ships no router. Every other key in the host file stays. On the real remove, delete only that key.
+
+**Path refresh.** The checkout moved. Run the pass again so this product's block uses the current path. Upsert this product's key. Leave every other key alone.
