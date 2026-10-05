@@ -15,6 +15,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- **Install reads `platforms.yaml`.** The procedure is `install/README.md`. One server block is upserted into each enabled host. The host file, the format, and the key come from the stored definition. With no environment file, user-global host config is not edited. This product ships no router.
 - The board file is `FOCUS.md`. `now_view` reads the board of the nexus the chair sits in. A nexus result lists that nexus's direct chairs. When `nexus.md` sets `focus:`, the named child's board is returned as `focus` and that child is left out of the chair lines. A leftover `NOW.md` is read only when `FOCUS.md` is absent. With `nexus.md`, always-on names come from that file's Always-on column.
 - Public contract 0.2.3: a sensitive chair may send mail when its own constitution allows that write. The guard lives in that chair's mail article.
 - Each tool sets read-only, destructive, idempotent, and open-world hints. None are open to the network. `note_list` is a write because the first listing by the intended chair records an ack of shown.

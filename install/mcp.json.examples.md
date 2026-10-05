@@ -1,65 +1,25 @@
-# MCP host snippets
+# Server block
 
 Envoy needs a bulletin root and a vault. Set `ENVOY_ROOT` (required) and `ENVOY_HOME` (default `~/.envoy` on POSIX, or pass `--vault`).
 
-When `ENVOY_ROOT` contains `nexus.md`, that file is the roster and each nexus folder holds `_envoy/`. `ENVOY_HOME` is the record store only when `nexus.md` is absent.
+When `ENVOY_ROOT` contains `nexus.md`, that file is the roster and each nexus folder holds `_envoy/`. `platforms.yaml` sits next to that file. `ENVOY_HOME` is the record store only when `nexus.md` is absent.
 
-Replace the paths below with your checkout and bulletin root.
+`ENVOY_ROOT` and `ENVOY_HOME` win over `--root` and `--vault` when both are set. On POSIX, a typical vault is `~/.envoy` (expand `~` to an absolute path if the host does not).
 
-## Cursor (`~/.cursor/mcp.json` or project `.cursor/mcp.json`)
+Where this block is written is `install/README.md`. The host file, the format, and the key come from `platforms.yaml`. This page does not name them.
 
-```json
-{
-  "mcpServers": {
-    "envoy": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--directory",
-        "/path/to/envoy",
-        "envoy"
-      ],
-      "env": {
-        "ENVOY_ROOT": "/path/to/bulletin",
-        "ENVOY_HOME": "/path/to/envoy-vault"
-      }
-    }
-  }
-}
+Replace the paths with your checkout and bulletin root.
+
+```yaml
+command: uv
+args:
+  - run
+  - --directory
+  - /path/to/envoy
+  - envoy
+env:
+  ENVOY_ROOT: /path/to/bulletin
+  ENVOY_HOME: /path/to/envoy-vault
 ```
 
-## Claude Code (`~/.claude.json` mcpServers, or a project `.mcp.json`)
-
-```json
-{
-  "mcpServers": {
-    "envoy": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--directory",
-        "/path/to/envoy",
-        "envoy"
-      ],
-      "env": {
-        "ENVOY_ROOT": "/path/to/bulletin",
-        "ENVOY_HOME": "/path/to/envoy-vault"
-      }
-    }
-  }
-}
-```
-
-## Grok (`~/.grok/config.toml`)
-
-```toml
-[mcp_servers.envoy]
-command = "uv"
-args = ["run", "--directory", "/path/to/envoy", "envoy"]
-
-[mcp_servers.envoy.env]
-ENVOY_ROOT = "/path/to/bulletin"
-ENVOY_HOME = "/path/to/envoy-vault"
-```
-
-`ENVOY_ROOT` / `ENVOY_HOME` win over `--root` / `--vault` when both are set. On POSIX, a typical vault is `~/.envoy` (expand to an absolute path in JSON if the host does not expand `~`).
+When `format` is `json`, write that as an object under the definition's `key`. When `format` is `toml`, write it as a table under that key.
