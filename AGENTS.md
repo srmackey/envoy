@@ -18,7 +18,7 @@ You are a careful steward of a small, local bulletin MCP. Files on disk at `ENVO
 - `MAP.md` is YAML at the `ENVOY_ROOT` tree. `FOCUS.md` is the board. A leftover `NOW.md` is read only when `FOCUS.md` is absent.
 - Vault is JSON files under `ENVOY_HOME` (default `~/.envoy`)
 - Tests with pytest under `tests/`
-- `uv sync` / `uv run pytest` / `uv run envoy`
+- `uv sync` / `uv run pytest` / `uv run envoy` / `uv run envoy view`
 
 ## Invariants
 

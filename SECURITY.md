@@ -6,7 +6,8 @@ Report a vulnerability privately with a GitHub Security Advisory on this reposit
 
 ## Trust boundary
 
-- Transport is stdio. The host starts a local process as the user who launched it.
+- Transport for the MCP server is stdio. The host starts a local process as the user who launched it.
+- `envoy view` listens on `127.0.0.1` only. It reads the bulletin and the vault. It does not write them.
 - Bulletin files live at `ENVOY_ROOT`. Map tools read and write `MAP.md` there. `now_view` reads `FOCUS.md`. The server reads a node's identity file and local status when a tool asks for them.
 - Published sitreps and mail notes are JSON under `ENVOY_HOME`, or `~/.envoy` when that is unset and the bulletin root has no `nexus.md`. When `nexus.md` is present, each nexus folder holds them in `_envoy/`.
 - It does not write inbox letters.

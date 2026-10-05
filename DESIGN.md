@@ -66,6 +66,10 @@ Envoy does not infer synonyms. Leftover mismatch is `unaccounted`.
 
 Always-on names come from the Always-on column of the nexus whose board is on screen. Without `nexus.md`, they come from `always-on.yaml`. `now_view` reports `always_on_missing` for names with no This-week line on that board. It does not invent lines.
 
+## Local page
+
+`envoy view` serves one page on `127.0.0.1`. It reads the same board, roster, and published sitreps as the tools. It also reads `_status/STATUS.md` and the pending files in `inbox/` on that chair. When `_contextforge/workspaces/<folder name>/` is present, those two paths are read there instead. The page shows the published sitrep and the local file when they disagree. It counts unseen mail notes and does not list them.
+
 ## Tools
 
 | Tool | Chair | Does |
