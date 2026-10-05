@@ -29,7 +29,7 @@ uv run envoy view --root /path/to/bulletin
 | `ENVOY_ROOT` | Bulletin root (required; or pass `--root`) |
 | `ENVOY_HOME` | Record store when the bulletin root has no `nexus.md` (default `~/.envoy`; or pass `--vault`) |
 
-MCP host snippets: [`install/mcp.json.examples.md`](install/mcp.json.examples.md). Cursor and Claude Code use JSON. Grok uses TOML.
+Install: [`install/README.md`](install/README.md). The block is [`install/mcp.json.examples.md`](install/mcp.json.examples.md). Host files come from `platforms.yaml` next to `nexus.md`. With no environment file, user-global host config is left alone.
 
 ## Tools
 
