@@ -9,7 +9,7 @@ import yaml
 
 from envoy.address import Nexus, load_tree
 from envoy.mapfile import open_chair
-from envoy.notes_store import note_list
+from envoy.notes_store import mail_outstanding, note_list
 from envoy.status_store import status_get
 
 LINE_RE = re.compile(r"\*\*(.+?)\*\*\s*·\s*due:\s*(\S+)\s*·\s*node:\s*(\S+)")
@@ -144,7 +144,7 @@ def _always_on_rows(nexus: Nexus) -> list[str]:
     return [node.name for node in nexus.nodes if node.always_on]
 
 
-def now_view(root: Path, home: Path, chair: str) -> dict[str, Any]:
+def now_view(root: Path, home: Path, chair: str, *, read_only: bool = False) -> dict[str, Any]:
     caller = open_chair(root, chair, home)
     if caller is None:
         return {"ok": False, "error": "unknown_chair"}
@@ -208,11 +208,15 @@ def now_view(root: Path, home: Path, chair: str) -> dict[str, Any]:
         if child is not None and borrowed is not None:
             missing.extend(_missing(_always_on_rows(child), borrowed))
         missing.extend(_missing(_always_on_rows(nexus), parsed))
-    mail = note_list(root, home, chair=chair)
     result["reconcile"] = reconcile
     result["forefronts"] = forefronts
-    result["mail"] = mail.get("notes") or []
     result["always_on_missing"] = missing
+    if read_only:
+        notice = mail_outstanding(caller.home, caller.address)
+        result["mail_unacked"] = len(notice["mail_unacked_for_me"])
+        return result
+    mail = note_list(root, home, chair=chair)
+    result["mail"] = mail.get("notes") or []
     return result
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
+import sys
 
 from envoy.paths import resolve_home, resolve_root
 
@@ -21,6 +21,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> None:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == "view":
+        from envoy.view_server import view_main
+
+        view_main(argv[1:])
+        return
     args = build_parser().parse_args(argv)
     root = resolve_root(cli_root=args.root)
     home = resolve_home(cli_vault=args.vault)
