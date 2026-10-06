@@ -3,17 +3,21 @@
 from __future__ import annotations
 
 import json
+import threading
+import urllib.error
+import urllib.request
+from datetime import date, timedelta
 from pathlib import Path
 
 from tests.conftest import write_map, write_project
 
 from envoy.notes_store import note_post
 from envoy.status_store import status_put
-from envoy.view import board_snapshot, node_detail
+from envoy.view import node_detail, snapshot
 from envoy.view_server import make_server
 
 
-def _coast(tmp_path: Path) -> Path:
+def _coast(tmp_path: Path, *, harbor_sensitive: bool = False) -> Path:
     root = tmp_path / "coast"
     root.mkdir()
     (root / "nexus.md").write_text(
@@ -23,7 +27,7 @@ def _coast(tmp_path: Path) -> Path:
             "",
             "| Node | Path | Kind | Status | Sensitive | Always-on | Services | Triggers |",
             "|---|---|---|---|---|---|---|---|",
-            "| harbor | harbor/ | nexus | active | no | no | status, mail | inner |",
+            f"| harbor | harbor/ | nexus | active | {'yes' if harbor_sensitive else 'no'} | no | status, mail | inner |",
             "| ledger | ledger/ | node | active | no | no | status, mail | tide book |",
         ]) + "\n",
         encoding="utf-8",
@@ -59,7 +63,7 @@ def _coast(tmp_path: Path) -> Path:
     return root
 
 
-def _local(folder: Path, forefront: str) -> None:
+def _local(folder: Path, forefront: str, *, loops: list[str] | None = None) -> None:
     status = folder / "_status"
     status.mkdir(parents=True, exist_ok=True)
     (status / "STATUS.md").write_text(
@@ -75,30 +79,75 @@ def _local(folder: Path, forefront: str) -> None:
             "- counted yesterday",
             "",
             "## Next steps",
-            "- count again",
+            "1. count again",
             "",
             "## Open loops",
+            *[f"- {loop}" for loop in loops or []],
             "",
         ]) + "\n",
         encoding="utf-8",
     )
 
 
-def test_board_reads_focus_child_and_opens_a_nexus(tmp_path: Path, home: Path) -> None:
+def _addresses(entries: list[dict]) -> list[str]:
+    found: list[str] = []
+    for entry in entries:
+        found.append(entry["address"])
+        found.extend(_addresses(entry.get("children") or []))
+    return found
+
+
+def _health(snap: dict, address: str) -> dict:
+    def find(entries: list[dict]) -> dict | None:
+        for entry in entries:
+            if entry["address"] == address:
+                return entry
+            hit = find(entry.get("children") or [])
+            if hit:
+                return hit
+        return None
+
+    entry = find(snap["tree"])
+    assert entry is not None, address
+    return entry["health"]
+
+
+def test_snapshot_reads_tree_board_and_next_move(tmp_path: Path, home: Path) -> None:
     root = _coast(tmp_path)
     status_put(root, home, "ledger", "Count the tide", ["counted"], [], [])
-    snap = board_snapshot(root, home, "coast")
+    snap = snapshot(root, home, "coast", today=date(2026, 10, 3))
     assert snap["ok"] is True
     assert snap["chair"] == "coast"
-    assert snap["parent"] is None
-    assert snap["focus"]["node"] == "harbor"
-    assert snap["focus"]["this_week"][0]["text"] == "Paint the dock"
-    assert snap["now"]["this_week"][0]["due"] == "2026-10-04"
-    names = {entry["name"]: entry for entry in snap["entries"]}
-    assert names["harbor"]["opens"] is True
-    assert names["coast/ledger"]["opens"] is False
-    assert {row["node"] for row in snap["forefronts"]} == {"coast/ledger"}
+    assert snap["view"] == "coast"
+    assert _addresses(snap["tree"]) == ["coast", "harbor", "harbor/dock", "coast/ledger"]
+    assert snap["tree"][0]["children"][0]["kind"] == "nexus"
+    first, second = snap["board"]["sections"]
+    assert first["name"] == "harbor"
+    assert first["this_week"][0]["text"] == "Paint the dock"
+    assert second["name"] == "coast"
+    ledger = second["this_week"][0]
+    assert ledger["address"] == "coast/ledger"
+    assert ledger["days"] == 1
+    assert ledger["state"] == "unaccounted"
+    assert snap["next"]["text"] == "Paint the dock"
+    assert snap["next"]["board"] == "harbor"
+    assert snap["attention"][0]["kinds"] == ["due", "unaccounted"]
+    assert snap["attention"][0]["address"] == "coast/ledger"
     assert "mail" not in snap
+
+
+def test_a_node_is_viewed_from_its_nexus(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path)
+    snap = snapshot(root, home, "ledger")
+    assert snap["chair"] == "coast/ledger"
+    assert snap["view"] == "coast"
+    assert snap["briefing"]["address"] == "coast/ledger"
+    assert snap["briefing"]["kind"] == "node"
+    assert [step["name"] for step in snap["path"]] == ["coast", "ledger"]
+    deep = snapshot(root, home, "dock")
+    assert deep["view"] == "harbor"
+    assert [step["name"] for step in deep["path"]] == ["coast", "harbor", "dock"]
+    assert [section["name"] for section in deep["board"]["sections"]] == ["harbor"]
 
 
 def test_overlay_inbox_and_disagreement(tmp_path: Path, home: Path) -> None:
@@ -115,9 +164,18 @@ def test_overlay_inbox_and_disagreement(tmp_path: Path, home: Path) -> None:
     detail = node_detail(root, home, "coast", "ledger")
     assert detail["ok"] is True
     assert detail["diverged"] is True
+    assert detail["differs"][0] == "forefront"
     assert detail["local"]["forefront"] == "Walk the tide line"
     assert detail["published"]["forefront"] == "Count the tide"
     assert detail["inbox_count"] == 1
+    snap = snapshot(root, home, "coast")
+    health = _health(snap, "coast/ledger")
+    assert health["state"] == "drift"
+    assert health["inbox"] == 1
+    card = next(item for item in snap["attention"] if item.get("address") == "coast/ledger" and "text" not in item)
+    assert card["kinds"] == ["inbox", "drift"]
+    assert card["inbox"] == 1
+    assert snap["inbox_count"] == 1
 
 
 def test_matching_local_file_is_not_a_split(tmp_path: Path, home: Path) -> None:
@@ -133,7 +191,75 @@ def test_matching_local_file_is_not_a_split(tmp_path: Path, home: Path) -> None:
     _local(root / "ledger", "Count the tide")
     detail = node_detail(root, home, "coast", "coast/ledger")
     assert detail["diverged"] is False
+    assert detail["differs"] == []
     assert detail["inbox_count"] == 0
+
+
+def test_markup_alone_is_not_drift(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path)
+    status_put(
+        root, home, "ledger",
+        "Count the tide in tide.md",
+        ["counted yesterday"],
+        ["count again"],
+        ["The tide book is late. See the almanac."],
+        repo="main · clean",
+    )
+    _local(
+        root / "ledger",
+        "Count the tide in `tide.md`",
+        loops=["**The tide book is late.** See [the almanac](https://example.com/almanac)."],
+    )
+    detail = node_detail(root, home, "coast", "coast/ledger")
+    assert detail["diverged"] is False
+
+
+def test_old_sitrep_and_past_forefront_date_are_stale(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path)
+    status_put(root, home, "ledger", "Count the tide", [], [], [])
+    status_put(root, home, "dock", "Paint before 2020-01-01", [], [], [])
+    later = snapshot(root, home, "coast", today=date.today() + timedelta(days=30))
+    ledger = _health(later, "coast/ledger")
+    assert ledger["state"] == "stale"
+    assert ledger["stale_reason"] == "old"
+    assert ledger["age_days"] == 30
+    assert not [item for item in later["attention"] if item.get("address") == "coast/ledger" and "text" not in item]
+    now = snapshot(root, home, "coast")
+    assert _health(now, "coast/ledger")["state"] == "fresh"
+    assert _health(now, "harbor/dock")["stale_reason"] == "past_date"
+    assert _health(now, "harbor")["state"] == "silent"
+
+
+def test_sensitive_nexus_marks_its_chairs_and_board(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path, harbor_sensitive=True)
+    snap = snapshot(root, home, "coast")
+    harbor = snap["tree"][0]["children"][0]
+    assert harbor["sensitive"] is True
+    assert harbor["children"][0]["sensitive"] is True
+    assert snap["board"]["sections"][0]["sensitive"] is True
+    assert snap["next"]["sensitive"] is True
+    assert snap["board"]["sections"][1]["sensitive"] is False
+
+
+def test_a_sensitive_chair_publishing_less_is_not_drift(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path, harbor_sensitive=True)
+    status_put(root, home, "dock", "Paint the dock", [], [], [])
+    _local(root / "harbor" / "dock", "Paint the dock", loops=["a private detail"])
+    detail = node_detail(root, home, "coast", "harbor/dock")
+    assert detail["sensitive"] is True
+    assert detail["diverged"] is False
+    assert _health(snapshot(root, home, "coast"), "harbor/dock")["drift"] is False
+
+
+def test_since_skips_an_unchanged_snapshot(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path)
+    first = snapshot(root, home, "coast")
+    same = snapshot(root, home, "coast", since=first["version"])
+    assert same == {"ok": True, "unchanged": True, "version": first["version"]}
+    status_put(root, home, "ledger", "Count the tide", [], [], [])
+    moved = snapshot(root, home, "coast", since=first["version"])
+    assert moved["version"] != first["version"]
+    assert "tree" in moved
 
 
 def test_snapshot_does_not_ack_mail(root: Path, home: Path) -> None:
@@ -155,40 +281,49 @@ def test_snapshot_does_not_ack_mail(root: Path, home: Path) -> None:
         intended_for="nexus", inbox="inbox/letter.md", why="export",
     )
     note_id = posted["note"]["id"]
-    snap = board_snapshot(root, home, "nexus")
+    snap = snapshot(root, home, "nexus")
     assert snap["mail_unacked"] == 1
+    assert _addresses(snap["tree"]) == ["nexus", "harbor"]
+    assert snap["next"]["text"] == "Chart the harbor"
     saved = json.loads((home / "mail" / f"{note_id}.json").read_text(encoding="utf-8"))
     assert saved["ack"] is None
+
+
+def _get(port: int, path: str) -> tuple[int, bytes]:
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}{path}") as res:
+            return res.status, res.read()
+    except urllib.error.HTTPError as err:
+        return err.code, b""
 
 
 def test_page_serves_on_localhost(tmp_path: Path, home: Path) -> None:
     root = _coast(tmp_path)
     httpd = make_server(root, home, 0)
     assert httpd.server_address[0] == "127.0.0.1"
-    thread_started = False
-    import threading
-
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
-    thread_started = True
     try:
-        import urllib.request
-
         port = httpd.server_address[1]
-        page = urllib.request.urlopen(f"http://127.0.0.1:{port}/").read().decode("utf-8")
-        assert "This week" in page or "refresh" in page
-        payload = json.loads(
-            urllib.request.urlopen(f"http://127.0.0.1:{port}/api/board").read().decode("utf-8")
-        )
-        assert payload["chair"] == "coast"
-        missing = json.loads(
-            urllib.request.urlopen(
-                f"http://127.0.0.1:{port}/api/node?chair=coast&node="
-            ).read().decode("utf-8")
-        )
-        assert missing["error"] == "invalid_payload"
+        status, page = _get(port, "/")
+        assert status == 200
+        assert b'id="app"' in page
+        status, script = _get(port, "/app.js")
+        assert status == 200
+        assert b"/vendor/preact-htm.js" in script
+        assert _get(port, "/vendor/preact-htm.js")[0] == 200
+        status, body = _get(port, "/api/snapshot")
+        assert json.loads(body)["chair"] == "coast"
+        status, body = _get(port, "/api/snapshot?chair=nowhere")
+        assert json.loads(body)["error"] == "unknown_chair"
+        assert _get(port, "/vendor/README.md")[0] == 404
+        assert _get(port, "/../pyproject.toml")[0] == 404
+        try:
+            second = make_server(root, home, port)
+        except OSError:
+            second = None
+        assert second is None, "a second page bound a port that is already serving"
     finally:
-        if thread_started:
-            httpd.shutdown()
-            thread.join(timeout=5)
-            httpd.server_close()
+        httpd.shutdown()
+        thread.join(timeout=5)
+        httpd.server_close()

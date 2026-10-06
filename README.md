@@ -22,7 +22,7 @@ uv run envoy --root /path/to/bulletin
 uv run envoy view --root /path/to/bulletin
 ```
 
-`envoy view` opens a page on `127.0.0.1` port `4173`. It reads the board, the roster, and published sitreps. It also reads `_status/STATUS.md` and pending inbox files on the chair, or the same paths under `_contextforge/workspaces/<folder name>/` when that directory is present. A refresh counts unseen mail notes and does not mark them seen.
+`envoy view` opens a page on `127.0.0.1` port `4173`: your next move, what needs you, and every chair's health in one tree. It reads the board, the roster, published sitreps, and each chair's local status and pending inbox files. Viewing counts unseen mail notes and does not mark them seen. `/` jumps to a chair, `j` and `k` move, `s` shows sensitive chairs.
 
 | Variable | Role |
 |---|---|
