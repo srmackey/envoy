@@ -68,7 +68,15 @@ Always-on names come from the Always-on column of the nexus whose board is on sc
 
 ## Local page
 
-`envoy view` serves one page on `127.0.0.1`. It reads the same board, roster, and published sitreps as the tools. It also reads `_status/STATUS.md` and the pending files in `inbox/` on that chair. When `_contextforge/workspaces/<folder name>/` is present, those two paths are read there instead. The page shows the published sitrep and the local file when they disagree. It counts unseen mail notes and does not list them.
+`envoy view` serves one page on `127.0.0.1`. It reads the same board, roster, and published sitreps as the tools, plus `_status/STATUS.md` and the pending files in `inbox/` on each chair. When `_contextforge/workspaces/<folder name>/` is present, those two paths are read there instead. It counts unseen mail notes and never lists them, so viewing does not mark a note seen.
+
+The page opens on the next move: the first line of the board in view, which is the `focus:` child's board when one is set. Under it is one card per thing that needs you: a board line overdue or due within seven days, a line its chair's sitrep does not reflect, an always-on gap, unseen mail, inbox letters, and a chair whose local file and published sitrep disagree. Inline markup and links do not count as disagreement.
+
+The tree shows every chair with a health dot: up to date, stale (sitrep older than seven days, or a Forefront date already past), files disagree, or no sitrep. Stale is shown, not raised as a card. Selecting a chair shows its briefing and moves the board to that chair's nexus. The selection lives in the address bar, so links and the back button work.
+
+A sensitive chair's content stays hidden until you show it. Its published sitrep is not compared with its local file, because it publishes less on purpose.
+
+The page is static files in the package with Preact vendored, no build step, and no outside requests. One endpoint returns the whole snapshot with a version. The page asks every two seconds and redraws only when the version changes.
 
 ## Tools
 

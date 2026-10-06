@@ -8,7 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
-- `envoy view` serves a localhost page for the board, the roster, and published sitreps. It reads a local status file and pending inbox files, shows both copies when they disagree, and does not list mail notes.
+- `envoy view` serves a localhost page that leads with the next move and the items that need you, beside a tree of every chair with its health. A chair's briefing shows only the fields where its local file and published sitrep disagree. Sensitive chairs stay hidden until shown. The page does not list mail notes, and it refuses a port that is already serving.
 - When `nexus.md` is at the bulletin root, `chair` is an address and each nexus folder holds `_envoy/`. `nexus` still names the root. A unique bare name resolves. An ambiguous one is `unknown_chair`. Mail between nexuses is stored in both nexus homes. `map_list` and `map_upsert` use that nexus's `nexus.md`. Without the file, `MAP.md` and `ENVOY_HOME` are unchanged.
 - Security policy: how to report a vulnerability, and what the local process can touch.
 - The tool list and each tool's side effects live in `docs/tools.md`. The README states the trust boundary.
