@@ -1,6 +1,6 @@
 # Envoy
 
-**Version 0.3**
+**Version 0.4**
 
 Envoy is a local MCP server for a bulletin: membership, published status, and mail notes. Files on disk stay the record for the map, the board, local status, and inbox letters. The vault holds published sitreps and mail notes. Envoy is the bus and the vault. It is not a wiki, not standing guidance, not chair memory, and not the nexus chair. Session briefs are not this server.
 
