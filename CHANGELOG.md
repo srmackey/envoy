@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-08
+
+### Changed
+
+- `now_view` is a write. A nexus call records an ack of shown on notes intended for that chair, the same way `note_list` does. A node call still only reads the board. The page still counts unseen notes and does not record that ack.
+- The tool list names the roster file in force. `map_list` reads it and `map_upsert` writes it: `MAP.md` when `nexus.md` is absent, and that nexus's `nexus.md` when it is present.
+- The README trust boundary includes the localhost page.
+
 ## [0.4.0] - 2026-10-08
 
 ### Added

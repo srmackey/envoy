@@ -39,7 +39,7 @@ Install: [`install/README.md`](install/README.md). The block is [`install/mcp.js
 
 Ten tools. The list and what each one changes are in [docs/tools.md](docs/tools.md).
 
-Each tool sets `readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint`. None are open to the network. `note_list` writes an ack of shown the first time the intended chair lists a note, so it is not read-only.
+Each tool sets `readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint`. None are open to the network. `note_list` writes an ack of shown the first time the intended chair lists a note, so it is not read-only. A nexus `now_view` lists that same mail and records the same ack. A node `now_view` only reads the board. The page counts unseen notes and does not record the ack.
 
 On initialize the server returns a short operating note: every call sends `chair`, and `now_view` is the living board. That note lives in the server. This page does not repeat it.
 
@@ -48,6 +48,7 @@ How it is structured: [`DESIGN.md`](DESIGN.md). What moved: [`CHANGELOG.md`](CHA
 ## Trust boundary
 
 - Transport is stdio. The host starts a local process as the user who launched it.
+- The page listens on `127.0.0.1` only. It reads the bulletin and the vault. It does not write them.
 - Bulletin files live at `ENVOY_ROOT`. Map tools read and write `MAP.md` there. `now_view` reads `FOCUS.md`. The server reads a node's identity file and local status when a tool asks for them.
 - Published sitreps and mail notes are JSON. Without `nexus.md` they live under `ENVOY_HOME` (default `~/.envoy`). With `nexus.md`, each nexus folder holds them in `_envoy/`.
 - It does not write inbox letters. A letter is a file some other program puts there.
