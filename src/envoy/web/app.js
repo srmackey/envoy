@@ -104,7 +104,7 @@ function reason(item, kind) {
     case "inbox":
       return plural(item.inbox, "letter") + " waiting";
     case "unaccounted":
-      return `not in ${item.node}'s sitrep`;
+      return `not in ${item.title || item.node}'s sitrep`;
     case "drift":
       return "local file and sitrep differ";
     case "always_on":
@@ -116,9 +116,9 @@ function reason(item, kind) {
   }
 }
 
-function cardDetail(item) {
+function cardDetail(item, own = false) {
   const reasons = item.kinds.map((kind) => reason(item, kind)).filter(Boolean);
-  if (item.text && item.node && !item.kinds.includes("unaccounted")) reasons.push(item.node);
+  if (!own && item.text && item.node && !item.kinds.includes("unaccounted")) reasons.push(item.title || item.node);
   return reasons.join(" · ");
 }
 
@@ -138,6 +138,11 @@ function visible(nodes, collapsed, out = []) {
     if (node.children?.length && !collapsed.has(node.address)) visible(node.children, collapsed, out);
   }
   return out;
+}
+
+// Jump ranks a chair first when its title or folder name starts with what was typed.
+function leads(node, needle) {
+  return [node.title, node.name].some((name) => String(name || "").toLowerCase().startsWith(needle));
 }
 
 function subsequence(needle, hay) {
@@ -182,7 +187,7 @@ function StateChip({ state }) {
 function NodeChip({ item, go }) {
   if (!item.node) return null;
   const open = item.address ? () => go(item.address) : undefined;
-  return html`<${Chip} onClick=${open} title=${item.address || item.node}>${item.node}<//>`;
+  return html`<${Chip} onClick=${open} title=${item.address || item.node}>${item.title || item.node}<//>`;
 }
 
 // A block opened by hand stays open until the next hide-all. The eye in the header
@@ -251,8 +256,8 @@ function Header({ snap, online, checked, go, showSensitive, toggleSensitive, ope
     <nav class="crumbs" aria-label="Location">
       ${path.map((step, i) =>
         i < path.length - 1
-          ? html`<button type="button" key=${step.address} onClick=${() => go(step.address)}>${step.name}</button><span class="sep">/</span>`
-          : html`<strong key=${step.address}>${step.name}</strong>`
+          ? html`<button type="button" key=${step.address} onClick=${() => go(step.address)}>${step.title || step.name}</button><span class="sep">/</span>`
+          : html`<strong key=${step.address}>${step.title || step.name}</strong>`
       )}
     </nav>
     <div class="spacer"></div>
@@ -284,7 +289,7 @@ function TreeRow({ node, depth, selected, collapsed, toggle, go }) {
             onClick=${(e) => { e.stopPropagation(); toggle(node.address); }}>${open ? icon.down : icon.right}</button>`
         : html`<span class="caret-space"></span>`}
       <${Dot} state=${h.state} />
-      <span class="name">${node.name}</span>
+      <span class="name">${node.title || node.name}</span>
       ${node.sensitive ? html`<span class="lock" title="Sensitive">${icon.lock}</span>` : null}
       ${h.mail ? html`<span class="badge" title=${plural(h.mail, "unseen mail note")}>${icon.mail}${h.mail}</span>` : null}
       ${h.inbox ? html`<span class="badge" title=${plural(h.inbox, "inbox letter")}>${icon.inbox}${h.inbox}</span>` : null}
@@ -317,54 +322,37 @@ function Side({ snap, selected, collapsed, toggle, go, open }) {
 
 // Main --------------------------------------------------------------------------------
 
-function NextMove({ next, go, showSensitive }) {
-  if (!next) {
-    return html`<section class="hero empty">
-      <p class="eyebrow">Next move</p>
-      <h1>Nothing is ranked this week.</h1>
-      <p class="sub">The board is empty. Forefronts are still in the tree.</p>
-    </section>`;
-  }
-  return html`<section class="hero">
-    <p class="eyebrow">Next move <span class="from">from the ${next.board} board</span></p>
-    <${Veil} on=${next.sensitive} show=${showSensitive}><h1><${Fmt} text=${next.text} /></h1><//>
-    <div class="chips">
-      <${NodeChip} item=${next} go=${go} />
-      <${DueChip} days=${next.days} due=${next.due} />
-      <${StateChip} state=${next.state} />
-    </div>
-  </section>`;
+// A need on the open chair's own card names the chair already, so the row drops it.
+function NeedRow({ item, go, own, showSensitive }) {
+  const what = item.text
+    ? html`<${Veil} on=${item.sensitive} show=${showSensitive} inline><${Fmt} text=${item.text} /><//>`
+    : own ? null : item.title || item.node;
+  const body = html`<span class="kind">${item.kinds.map((kind) => KIND[kind]).join(" · ")}</span>
+    ${what ? html`<span class="what">${what}</span>` : null}
+    <span class="detail">${cardDetail(item, own)}</span>`;
+  if (own || !item.address) return html`<div class=${"need " + item.kind}>${body}</div>`;
+  return html`<button type="button" class=${"need " + item.kind} onClick=${() => go(item.address)}>${body}</button>`;
 }
 
-function NeedsYou({ items, go, showSensitive }) {
+function Needs({ items, go, own = false, cap = 0, showSensitive }) {
   const [all, setAll] = useState(false);
-  if (!items.length) {
-    return html`<section class="allquiet">${icon.check}<div><strong>All quiet.</strong> <span>Nothing under this chair needs you.</span></div></section>`;
-  }
-  const shown = all ? items : items.slice(0, 8);
-  return html`<section class="needs">
-    <h2 class="section-title">Needs you <span class="count">${items.length}</span></h2>
-    <ul class="cards">
+  const shown = cap && !all ? items.slice(0, cap) : items;
+  return html`<ul class="needs">
       ${shown.map((item) => html`<li key=${[item.kind, item.address || item.node, item.text].join("|")}>
-        <button type="button" class=${"card " + item.kind} disabled=${!item.address}
-          onClick=${() => item.address && go(item.address)}>
-          <span class="kind">${item.kinds.map((kind) => KIND[kind]).join(" · ")}</span>
-          <span class="what">${item.text
-            ? html`<${Veil} on=${item.sensitive} show=${showSensitive} inline><${Fmt} text=${item.text} /><//>`
-            : item.node}</span>
-          <span class="detail">${cardDetail(item)}</span>
-        </button>
+        <${NeedRow} item=${item} go=${go} own=${own} showSensitive=${showSensitive} />
       </li>`)}
     </ul>
-    ${items.length > 8 ? html`<button type="button" class="more" onClick=${() => setAll(!all)}>${all ? "Show fewer" : `Show all ${items.length}`}</button>` : null}
-  </section>`;
+    ${cap && items.length > cap
+      ? html`<button type="button" class="more" onClick=${() => setAll(!all)}>${all ? "Show fewer" : `Show all ${items.length}`}</button>`
+      : null}`;
 }
 
-function BoardItem({ item, go, showSensitive }) {
+function BoardItem({ item, next, go, showSensitive }) {
   return html`<li>
     <div>
       <p class="text"><${Veil} on=${item.sensitive} show=${showSensitive} inline><${Fmt} text=${item.text} /><//></p>
       <div class="chips">
+        ${next ? html`<${Chip} tone="good">Next move<//>` : null}
         <${NodeChip} item=${item} go=${go} />
         <${DueChip} days=${item.days} due=${item.due} />
         <${StateChip} state=${item.state} />
@@ -373,18 +361,18 @@ function BoardItem({ item, go, showSensitive }) {
   </li>`;
 }
 
-function Board({ board, go, showSensitive }) {
+function Board({ board, next, go, showSensitive }) {
   if (!board || board.missing) {
-    return html`<section class="panel board"><h2 class="section-title">Board</h2>
-      <p class="quiet">No FOCUS.md for ${board?.nexus || "this nexus"} yet.</p></section>`;
+    return html`<div class="block"><h3 class="section-title">This week</h3>
+      <p class="quiet">No FOCUS.md for ${board?.nexus || "this nexus"} yet.</p></div>`;
   }
-  return html`<section class="panel board">
-    ${board.sections.map((section) => html`<div class="block" key=${section.name}>
-      <h2 class="section-title">${section.name === board.nexus ? "This week" : `${section.name} · this week`}
-        ${section.sensitive ? html`<span class="lock" title="Sensitive">${icon.lock}</span>` : null}</h2>
+  return html`${board.sections.map((section) => html`<div class="block" key=${section.name}>
+      <h3 class="section-title">${section.name === board.nexus ? "This week" : `${section.title || section.name} · this week`}
+        ${section.sensitive ? html`<span class="lock" title="Sensitive">${icon.lock}</span>` : null}</h3>
       ${section.this_week.length
-        ? html`<ol class="week">${section.this_week.map((item, i) => html`<${BoardItem} key=${i + item.text} item=${item} go=${go} showSensitive=${showSensitive} />`)}</ol>`
-        : html`<p class="quiet">Empty.</p>`}
+        ? html`<ol class="week">${section.this_week.map((item, i) => html`<${BoardItem} key=${i + item.text} item=${item}
+            next=${i === 0 && next?.board === section.name} go=${go} showSensitive=${showSensitive} />`)}</ol>`
+        : html`<p class="quiet">Nothing is ranked this week.</p>`}
       ${section.later.length
         ? html`<details class="later"><summary>Later · ${section.later.length}</summary>
             <ul>${section.later.map((item, i) => html`<li key=${i + item.text}>
@@ -394,9 +382,8 @@ function Board({ board, go, showSensitive }) {
         : null}
     </div>`)}
     ${board.always_on_missing.length
-      ? html`<p class="gap">Always-on with no line this week: ${board.always_on_missing.join(", ")}</p>`
-      : null}
-  </section>`;
+      ? html`<p class="gap">Always-on with no line this week: ${(board.always_on_titles || board.always_on_missing).join(", ")}</p>`
+      : null}`;
 }
 
 function Value({ value }) {
@@ -441,39 +428,74 @@ function Steps({ title, items, ordered = false }) {
   return html`<h3>${title}</h3>${ordered ? html`<ol>${rows}</ol>` : html`<ul class="plain">${rows}</ul>`}`;
 }
 
-function Briefing({ brief, showSensitive }) {
+// The open chair leads: its Forefront, its chips, what on it needs you, then its record.
+function ChairCard({ brief, go, showSensitive }) {
   if (!brief || brief.ok === false) {
-    return html`<section class="panel brief"><p class="quiet">${brief?.error === "forbidden" ? "That chair is outside this nexus." : "Nothing selected."}</p></section>`;
+    return html`<section class="panel chair"><p class="quiet">${brief?.error === "forbidden" ? "That chair is outside this nexus." : "Nothing selected."}</p></section>`;
   }
   const doc = brief.local || brief.published;
   const h = brief.health || {};
+  const mine = brief.attention || [];
   let source = "From the published sitrep. No local file.";
   if (brief.local && brief.published) source = brief.diverged ? "Showing the local file. The published sitrep differs." : "Local file and published sitrep match.";
   else if (brief.local) source = "From the local file. Nothing is published.";
-  return html`<section class="panel brief">
-    <header class="brief-head">
-      <p class="eyebrow">${brief.kind === "nexus" ? "Nexus" : "Chair"}
-        ${brief.sensitive ? html`<span class="lock" title="Sensitive">${icon.lock}</span>` : null}</p>
-      <h2>${brief.address}</h2>
-      <div class="chips">
-        ${h.repo ? html`<${Chip} tone=${h.dirty ? "warn" : "good"} title="Repo">${icon.branch}${h.repo}<//>` : null}
-        ${doc ? html`<${Chip} tone=${h.stale ? "warn" : "quiet"} title=${h.updated || ""}>${icon.clock}${ageText(h.age_days)}<//>` : null}
-        ${h.drift ? html`<${Chip} tone="drift">${icon.split}files disagree<//>` : null}
-        ${brief.inbox_count ? html`<${Chip} tone="good">${icon.inbox}${plural(brief.inbox_count, "letter")}<//>` : null}
-        ${h.mail ? html`<${Chip} tone="good">${icon.mail}${plural(h.mail, "unseen note")}<//>` : null}
-      </div>
-    </header>
-    ${!doc
-      ? html`<div class="empty-brief">No sitrep yet. This chair has not published one, and there is no local status file.</div>`
-      : html`<${Veil} on=${brief.sensitive} show=${showSensitive}>
-          <p class="label">Forefront</p>
-          <p class="ff"><${Fmt} text=${doc.forefront || "No Forefront set."} /></p>
-          ${brief.diverged ? html`<${Drift} brief=${brief} />` : null}
+  const chips = [
+    h.repo ? html`<${Chip} key="repo" tone=${h.dirty ? "warn" : "good"} title=${h.repo}>${icon.branch}<span class="clip">${h.repo}</span><//>` : null,
+    doc ? html`<${Chip} key="age" tone=${h.stale ? "warn" : "quiet"} title=${h.updated || ""}>${icon.clock}${ageText(h.age_days)}<//>` : null,
+    h.drift ? html`<${Chip} key="drift" tone="drift">${icon.split}files disagree<//>` : null,
+    brief.inbox_count ? html`<${Chip} key="inbox" tone="good">${icon.inbox}${plural(brief.inbox_count, "letter")}<//>` : null,
+    h.mail ? html`<${Chip} key="mail" tone="good">${icon.mail}${plural(h.mail, "unseen note")}<//>` : null,
+  ].filter(Boolean);
+  const body = html`
+    ${doc
+      ? html`<p class="ff"><${Fmt} text=${doc.forefront || "No Forefront set."} /></p>`
+      : html`<div class="empty-brief">No sitrep yet. This chair has not published one, and there is no local status file.</div>`}
+    ${chips.length ? html`<div class="chips">${chips}</div>` : null}
+    ${mine.length
+      ? html`<h3>Needs you <span class="count">${mine.length}</span></h3>
+          <${Needs} items=${mine} go=${go} own=${true} showSensitive=${showSensitive} />`
+      : null}
+    ${doc
+      ? html`${brief.diverged ? html`<${Drift} brief=${brief} />` : null}
           <${Timeline} items=${doc.where_i_left_off} />
           <${Steps} title="Next steps" items=${doc.next_steps} ordered />
           <${Steps} title="Open loops" items=${doc.open_loops} />
-          <p class="source">${icon.file}${source}</p>
-        <//>`}
+          <p class="source">${icon.file}${source}</p>`
+      : null}`;
+  return html`<section class="panel chair">
+    <header class="chair-head">
+      <p class="eyebrow">${brief.kind === "nexus" ? "Nexus" : "Chair"}
+        ${brief.sensitive ? html`<span class="lock" title="Sensitive">${icon.lock}</span>` : null}</p>
+      <h1>${brief.title || brief.address}</h1>
+      ${brief.title && brief.title !== brief.address ? html`<p class="addr">${brief.address}</p>` : null}
+    </header>
+    <${Veil} on=${brief.sensitive && Boolean(doc)} show=${showSensitive}>${body}<//>
+  </section>`;
+}
+
+// The nexus in view stays in sight, smaller: its board and whatever else under it needs you.
+function NexusCard({ snap, go, showSensitive }) {
+  const nexus = snap.nexus || { address: snap.view, name: snap.view };
+  const self = snap.chair === snap.view;
+  const items = snap.attention || [];
+  return html`<section class="panel nexus-card">
+    <header class="nexus-head">
+      <p class="eyebrow">${self ? "Its board" : "Nexus"}
+        ${nexus.sensitive ? html`<span class="lock" title="Sensitive">${icon.lock}</span>` : null}</p>
+      ${self
+        ? html`<h2>${nexus.title || nexus.address}</h2>`
+        : html`<h2><button type="button" class="open" onClick=${() => go(snap.view)} title=${`Open ${nexus.address}`}>${nexus.title || nexus.address}${icon.right}</button></h2>`}
+      ${!self && nexus.forefront
+        ? html`<p class="nexus-ff"><${Veil} on=${nexus.sensitive} show=${showSensitive} inline><${Fmt} text=${nexus.forefront} /><//></p>`
+        : null}
+    </header>
+    <${Board} board=${snap.board} next=${snap.next} go=${go} showSensitive=${showSensitive} />
+    <div class="block">
+      <h3 class="section-title">Needs you ${items.length ? html`<span class="count">${items.length}</span>` : null}</h3>
+      ${items.length
+        ? html`<${Needs} items=${items} go=${go} cap=${6} showSensitive=${showSensitive} />`
+        : html`<p class="allquiet">${icon.check}<span>Nothing else under ${nexus.title || nexus.name || nexus.address} needs you.</span></p>`}
+    </div>
   </section>`;
 }
 
@@ -487,8 +509,8 @@ function Jump({ tree, go, close }) {
   const all = useMemo(() => walk(tree).map((row) => row.node), [tree]);
   const needle = query.trim().toLowerCase();
   const hits = all
-    .filter((node) => !needle || subsequence(needle, (node.name + " " + node.address).toLowerCase()))
-    .sort((a, b) => (needle ? Number(!a.name.toLowerCase().startsWith(needle)) - Number(!b.name.toLowerCase().startsWith(needle)) : 0))
+    .filter((node) => !needle || subsequence(needle, [node.title, node.name, node.address].join(" ").toLowerCase()))
+    .sort((a, b) => (needle ? Number(!leads(a, needle)) - Number(!leads(b, needle)) : 0))
     .slice(0, 12);
   const pick = (node) => {
     if (!node) return;
@@ -508,7 +530,7 @@ function Jump({ tree, go, close }) {
       ${hits.length
         ? html`<ul>${hits.map((node, i) => html`<li key=${node.address} class=${i === at ? "on" : ""}
             onMouseEnter=${() => setAt(i)} onClick=${() => pick(node)}>
-            <${Dot} state=${node.health.state} /><span>${node.name}</span><span class="addr">${node.address}</span></li>`)}</ul>`
+            <${Dot} state=${node.health.state} /><span>${node.title || node.name}</span><span class="addr">${node.address}</span></li>`)}</ul>`
         : html`<p class="none">No chair matches.</p>`}
     </div>
   </div>`;
@@ -640,11 +662,9 @@ function App() {
         ${error ? html`<div class="gap">${error === "unknown_chair" ? "That chair is not in the tree." : error}</div>` : null}
         ${snap
           ? html`
-            <${NextMove} next=${snap.next} go=${go} showSensitive=${showSensitive} />
-            <${NeedsYou} key=${snap.view} items=${snap.attention} go=${go} showSensitive=${showSensitive} />
-            <div class="split">
-              <${Board} board=${snap.board} go=${go} showSensitive=${showSensitive} />
-              <${Briefing} key=${snap.chair} brief=${snap.briefing} showSensitive=${showSensitive} />
+            <div class="columns">
+              <${ChairCard} key=${snap.chair} brief=${snap.briefing} go=${go} showSensitive=${showSensitive} />
+              <${NexusCard} key=${snap.view} snap=${snap} go=${go} showSensitive=${showSensitive} />
             </div>`
           : html`<p class="quiet">Reading the bulletin…</p>`}
       </div>

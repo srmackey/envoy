@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
 from pathlib import Path
@@ -12,6 +13,9 @@ from urllib.parse import parse_qs, urlparse
 
 from envoy.paths import resolve_home, resolve_root
 from envoy.view import snapshot
+
+PORT = 4173
+RETRY_SECONDS = 30.0
 
 _TYPES = {
     ".html": "text/html; charset=utf-8",
@@ -85,11 +89,58 @@ class _Server(ThreadingHTTPServer):
     allow_reuse_address = os.name != "nt"
 
 
-def serve(root: Path, home: Path, port: int = 4173) -> None:
+def page_port() -> int:
+    raw = os.environ.get("ENVOY_VIEW_PORT", "").strip()
+    return int(raw) if raw.isdigit() else PORT
+
+
+def page_enabled() -> bool:
+    return os.environ.get("ENVOY_VIEW", "").strip().casefold() not in {"0", "off", "false", "no"}
+
+
+def keep_page_up(
+    root: Path,
+    home: Path,
+    *,
+    port: int | None = None,
+    retry: float = RETRY_SECONDS,
+    stop: threading.Event | None = None,
+) -> threading.Thread | None:
+    """Serve the page from this process while no other process does.
+
+    Every Envoy a host starts calls this. The first to bind the port serves it, and
+    the rest try again every `retry` seconds, so the page comes back when the one
+    serving exits. Nothing is written to stdout, which carries the MCP protocol.
+    """
+    if not page_enabled():
+        return None
+    stop = stop or threading.Event()
+    port = page_port() if port is None else port
+
+    def loop() -> None:
+        while not stop.is_set():
+            try:
+                httpd = make_server(root, home, port)
+            except OSError:
+                stop.wait(retry)
+                continue
+            threading.Thread(target=lambda: (stop.wait(), httpd.shutdown()), daemon=True).start()
+            try:
+                httpd.serve_forever()
+            finally:
+                httpd.server_close()
+            return
+
+    thread = threading.Thread(target=loop, name="envoy-page", daemon=True)
+    thread.start()
+    return thread
+
+
+def serve(root: Path, home: Path, port: int = PORT) -> None:
     try:
         httpd = make_server(root, home, port)
     except OSError:
-        raise SystemExit(f"Port {port} is in use. Is envoy view already running? Pick another with --port.")
+        raise SystemExit(f"Port {port} is in use. Envoy may already be serving the page there. Pick another with --port.")
     host, bound = httpd.server_address[:2]
     print(f"http://{host}:{bound}", flush=True)
     try:
@@ -108,6 +159,6 @@ def view_main(argv: list[str] | None = None) -> None:
         default=None,
         help="Record store when the bulletin root has no nexus.md. Or set ENVOY_HOME.",
     )
-    parser.add_argument("--port", type=int, default=4173)
+    parser.add_argument("--port", type=int, default=PORT)
     args = parser.parse_args(argv)
     serve(resolve_root(cli_root=args.root), resolve_home(cli_vault=args.vault), args.port)

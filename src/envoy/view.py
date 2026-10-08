@@ -2,7 +2,8 @@
 
 One call returns the whole tree with a health verdict per chair, the board of
 the nexus in view, what needs attention under it, and a briefing for the chair
-that is open. The page displays it and decides nothing.
+that is open. Cards about the open chair travel with its briefing, and the
+nexus keeps the rest. The page displays it and decides nothing.
 
 It reads the board, the roster, published sitreps, the local status file, and
 pending inbox files. It never lists mail notes, so a refresh does not mark a
@@ -17,6 +18,8 @@ import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 from envoy.address import Nexus, Tree, load_tree, resolve
 from envoy.mapfile import Chair, map_list, open_chair
@@ -59,11 +62,18 @@ def snapshot(
     view = selected.address if selected.is_nexus else _nexus_of(selected)
     chairs = _tree(root, home, tree, top, today)
     index = {entry["address"]: entry for entry in _walk(chairs)}
-    board = _board(root, home, tree, view, today)
+    titles = {address: entry["title"] for address, entry in index.items()}
+    board = _board(root, home, tree, view, today, titles)
+    attention = _attention(board, index.get(view))
     briefing = node_detail(root, home, view, selected.address)
     if briefing.get("ok"):
+        briefing["title"] = titles.get(selected.address) or selected.address
         briefing["health"] = (index.get(selected.address) or {}).get("health")
         briefing["kind"] = "nexus" if selected.is_nexus else "node"
+        # The chair's own cards ride with its briefing; the nexus keeps the rest.
+        briefing["attention"] = [card for card in attention if card.get("address") == selected.address]
+        attention = [card for card in attention if card.get("address") != selected.address]
+    nexus = {key: value for key, value in (index.get(view) or {}).items() if key != "children"}
     payload: dict[str, Any] = {
         "ok": True,
         "today": today.isoformat(),
@@ -71,9 +81,10 @@ def snapshot(
         "view": view,
         "path": _path(index, chairs, selected.address),
         "tree": chairs,
+        "nexus": nexus or None,
         "board": board,
         "next": _next(board),
-        "attention": _attention(board, index.get(view)),
+        "attention": attention,
         "briefing": briefing,
         "mail_unacked": sum(entry["health"]["mail"] for entry in index.values()),
         "inbox_count": sum(entry["health"]["inbox"] for entry in index.values()),
@@ -235,6 +246,7 @@ def _entry(
     return {
         "address": target.address if target is not None else address,
         "name": name,
+        "title": _title(target) or name,
         "kind": kind,
         "sensitive": sensitive,
         "status": status,
@@ -309,37 +321,64 @@ def _path(index: dict[str, dict], tree: list[dict[str, Any]], address: str) -> l
         return None
 
     found = search(tree, []) or ([index[address]] if address in index else [])
-    return [{"address": entry["address"], "name": entry["name"]} for entry in found]
+    return [{"address": entry["address"], "name": entry["name"], "title": entry["title"]} for entry in found]
+
+
+def _title(chair: Chair | None) -> str:
+    """The chair's proper name from its project.yaml, or nothing."""
+    if chair is None:
+        return ""
+    path = chair.project_dir / "project.yaml"
+    if not path.is_file():
+        return ""
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError:
+        return ""
+    return str(data.get("title") or "").strip() if isinstance(data, dict) else ""
 
 
 # The board ----------------------------------------------------------------
 
 
-def _board(root: Path, home: Path, tree: Tree | None, view: str, today: date) -> dict[str, Any]:
+def _board(
+    root: Path,
+    home: Path,
+    tree: Tree | None,
+    view: str,
+    today: date,
+    titles: dict[str, str],
+) -> dict[str, Any]:
     snap = now_view(root, home, view, read_only=True)
     if snap.get("error") == "missing_now":
-        return {"nexus": view, "missing": True, "sections": [], "always_on_missing": []}
+        return {"nexus": view, "missing": True, "sections": [], "always_on_missing": [], "always_on_titles": []}
     if not snap.get("ok"):
-        return {"nexus": view, "missing": True, "sections": [], "always_on_missing": [], "error": snap.get("error")}
+        return {
+            "nexus": view, "missing": True, "sections": [],
+            "always_on_missing": [], "always_on_titles": [], "error": snap.get("error"),
+        }
     states = {(row["text"], row["node"]): row["state"] for row in snap.get("reconcile") or []}
     sections: list[dict[str, Any]] = []
     focus = snap.get("focus")
     if focus:
         name = str(focus.get("node") or "")
         sensitive = _sensitive_name(tree, name)
-        sections.append(_section(tree, name, sensitive, focus, states, today))
+        sections.append(_section(tree, titles, name, sensitive, focus, states, today))
     view_sensitive = _sensitive_name(tree, view)
-    sections.append(_section(tree, view, view_sensitive, snap.get("now") or {}, states, today))
+    sections.append(_section(tree, titles, view, view_sensitive, snap.get("now") or {}, states, today))
+    always_on = [str(name) for name in snap.get("always_on_missing") or []]
     return {
         "nexus": view,
         "missing": False,
         "sections": sections,
-        "always_on_missing": list(snap.get("always_on_missing") or []),
+        "always_on_missing": always_on,
+        "always_on_titles": [_titled(tree, titles, name) for name in always_on],
     }
 
 
 def _section(
     tree: Tree | None,
+    titles: dict[str, str],
     name: str,
     sensitive: bool,
     parsed: dict[str, Any],
@@ -355,6 +394,7 @@ def _section(
             out.append({
                 "text": row["text"],
                 "node": node,
+                "title": titles.get(located.address, node) if located else node,
                 "address": located.address if located else None,
                 "due": row.get("due"),
                 "days": (due - today).days if due else None,
@@ -365,11 +405,17 @@ def _section(
 
     return {
         "name": name,
+        "title": _titled(tree, titles, name),
         "sensitive": sensitive,
         "updated": parsed.get("updated") or "",
         "this_week": items(parsed.get("this_week") or []),
         "later": items(parsed.get("later") or []),
     }
+
+
+def _titled(tree: Tree | None, titles: dict[str, str], name: str) -> str:
+    located = resolve(tree, name, root_alias=True) if tree is not None and name else None
+    return titles.get(located.address, name) if located else name
 
 
 def _next(board: dict[str, Any]) -> dict[str, Any] | None:
@@ -403,12 +449,18 @@ def _attention(board: dict[str, Any], view: dict[str, Any] | None) -> list[dict[
                     add(key, "due", row)
                 if row["state"] == "unaccounted":
                     add(key, "unaccounted", row)
-    for name in board.get("always_on_missing") or []:
-        add(("always_on", name), "always_on", {"node": name, "address": None, "sensitive": False})
+    always_on = zip(board.get("always_on_missing") or [], board.get("always_on_titles") or [])
+    for name, title in always_on:
+        add(("always_on", name), "always_on", {"node": name, "title": title, "address": None, "sensitive": False})
     for entry in _walk([view] if view else []):
         health = entry["health"]
         key = ("chair", entry["address"])
-        base = {"address": entry["address"], "node": entry["name"], "sensitive": entry["sensitive"]}
+        base = {
+            "address": entry["address"],
+            "node": entry["name"],
+            "title": entry["title"],
+            "sensitive": entry["sensitive"],
+        }
         if health["mail"]:
             add(key, "mail", {**base, "mail": health["mail"]})
         if health["inbox"]:
