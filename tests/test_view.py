@@ -150,6 +150,24 @@ def test_a_node_is_viewed_from_its_nexus(tmp_path: Path, home: Path) -> None:
     assert [section["name"] for section in deep["board"]["sections"]] == ["harbor"]
 
 
+def test_the_open_chair_keeps_its_own_cards(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path)
+    status_put(root, home, "ledger", "Count the tide", ["counted"], [], [])
+    inbox = root / "ledger" / "inbox"
+    inbox.mkdir()
+    (inbox / "letter.md").write_text("hello\n", encoding="utf-8")
+    snap = snapshot(root, home, "ledger", today=date(2026, 10, 3))
+    own = snap["briefing"]["attention"]
+    assert sorted(card["kinds"] for card in own) == [["due", "unaccounted"], ["inbox"]]
+    assert {card["address"] for card in own} == {"coast/ledger"}
+    assert not [card for card in snap["attention"] if card.get("address") == "coast/ledger"]
+    assert snap["nexus"]["address"] == "coast"
+    assert "children" not in snap["nexus"]
+    top = snapshot(root, home, "coast", today=date(2026, 10, 3))
+    assert top["briefing"]["attention"] == []
+    assert len([card for card in top["attention"] if card.get("address") == "coast/ledger"]) == 2
+
+
 def test_overlay_inbox_and_disagreement(tmp_path: Path, home: Path) -> None:
     root = _coast(tmp_path)
     status_put(root, home, "ledger", "Count the tide", ["counted"], [], [])

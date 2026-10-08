@@ -2,7 +2,8 @@
 
 One call returns the whole tree with a health verdict per chair, the board of
 the nexus in view, what needs attention under it, and a briefing for the chair
-that is open. The page displays it and decides nothing.
+that is open. Cards about the open chair travel with its briefing, and the
+nexus keeps the rest. The page displays it and decides nothing.
 
 It reads the board, the roster, published sitreps, the local status file, and
 pending inbox files. It never lists mail notes, so a refresh does not mark a
@@ -60,10 +61,15 @@ def snapshot(
     chairs = _tree(root, home, tree, top, today)
     index = {entry["address"]: entry for entry in _walk(chairs)}
     board = _board(root, home, tree, view, today)
+    attention = _attention(board, index.get(view))
     briefing = node_detail(root, home, view, selected.address)
     if briefing.get("ok"):
         briefing["health"] = (index.get(selected.address) or {}).get("health")
         briefing["kind"] = "nexus" if selected.is_nexus else "node"
+        # The chair's own cards ride with its briefing; the nexus keeps the rest.
+        briefing["attention"] = [card for card in attention if card.get("address") == selected.address]
+        attention = [card for card in attention if card.get("address") != selected.address]
+    nexus = {key: value for key, value in (index.get(view) or {}).items() if key != "children"}
     payload: dict[str, Any] = {
         "ok": True,
         "today": today.isoformat(),
@@ -71,9 +77,10 @@ def snapshot(
         "view": view,
         "path": _path(index, chairs, selected.address),
         "tree": chairs,
+        "nexus": nexus or None,
         "board": board,
         "next": _next(board),
-        "attention": _attention(board, index.get(view)),
+        "attention": attention,
         "briefing": briefing,
         "mail_unacked": sum(entry["health"]["mail"] for entry in index.values()),
         "inbox_count": sum(entry["health"]["inbox"] for entry in index.values()),
