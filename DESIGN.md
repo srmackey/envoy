@@ -76,6 +76,8 @@ The chair you open leads, in the wide column: its Forefront, then its repo, age,
 
 Something needs you when a board line is overdue or due within seven days, a line its chair's sitrep does not reflect, an always-on gap, unseen mail, inbox letters, or a chair whose local file and published sitrep disagree. Inline markup and links do not count as disagreement. A need about the open chair shows on that chair, and the nexus shows the rest, so nothing appears twice.
 
+A chair's name on the page is the `title:` in its `project.yaml`, or its folder name when it has none. Addresses stay folder names, and Jump matches either.
+
 The tree shows every chair with a health dot: up to date, stale (sitrep older than seven days, or a Forefront date already past), files disagree, or no sitrep. Stale is shown, not raised as a need. The selection lives in the address bar, so links and the back button work.
 
 A sensitive chair's content stays hidden until you show it. Its published sitrep is not compared with its local file, because it publishes less on purpose.

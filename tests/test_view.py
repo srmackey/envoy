@@ -169,6 +169,28 @@ def test_the_open_chair_keeps_its_own_cards(tmp_path: Path, home: Path) -> None:
     assert len([card for card in top["attention"] if card.get("address") == "coast/ledger"]) == 2
 
 
+def test_titles_come_from_project_yaml(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path)
+    write_project(root / "ledger", {"name": "ledger", "title": "The Tide Ledger", "services": ["status", "mail"]})
+    write_project(root, {"name": "coast", "title": "Coast Office", "services": ["status", "mail"]})
+    status_put(root, home, "ledger", "Count the tide", ["counted"], [], [])
+    inbox = root / "ledger" / "inbox"
+    inbox.mkdir()
+    (inbox / "letter.md").write_text("hello\n", encoding="utf-8")
+    snap = snapshot(root, home, "ledger", today=date(2026, 10, 3))
+    coast = snap["tree"][0]
+    assert (coast["name"], coast["title"]) == ("coast", "Coast Office")
+    assert coast["children"][0]["title"] == "harbor"
+    assert coast["children"][1]["title"] == "The Tide Ledger"
+    assert [step["title"] for step in snap["path"]] == ["Coast Office", "The Tide Ledger"]
+    assert snap["briefing"]["title"] == "The Tide Ledger"
+    assert snap["nexus"]["title"] == "Coast Office"
+    harbor, own = snap["board"]["sections"]
+    assert (harbor["title"], own["title"]) == ("harbor", "Coast Office")
+    assert own["this_week"][0]["title"] == "The Tide Ledger"
+    assert {card["title"] for card in snap["briefing"]["attention"]} == {"The Tide Ledger"}
+
+
 def test_overlay_inbox_and_disagreement(tmp_path: Path, home: Path) -> None:
     root = _coast(tmp_path)
     status_put(root, home, "ledger", "Count the tide", ["counted"], [], [])

@@ -104,7 +104,7 @@ function reason(item, kind) {
     case "inbox":
       return plural(item.inbox, "letter") + " waiting";
     case "unaccounted":
-      return `not in ${item.node}'s sitrep`;
+      return `not in ${item.title || item.node}'s sitrep`;
     case "drift":
       return "local file and sitrep differ";
     case "always_on":
@@ -118,7 +118,7 @@ function reason(item, kind) {
 
 function cardDetail(item, own = false) {
   const reasons = item.kinds.map((kind) => reason(item, kind)).filter(Boolean);
-  if (!own && item.text && item.node && !item.kinds.includes("unaccounted")) reasons.push(item.node);
+  if (!own && item.text && item.node && !item.kinds.includes("unaccounted")) reasons.push(item.title || item.node);
   return reasons.join(" · ");
 }
 
@@ -138,6 +138,11 @@ function visible(nodes, collapsed, out = []) {
     if (node.children?.length && !collapsed.has(node.address)) visible(node.children, collapsed, out);
   }
   return out;
+}
+
+// Jump ranks a chair first when its title or folder name starts with what was typed.
+function leads(node, needle) {
+  return [node.title, node.name].some((name) => String(name || "").toLowerCase().startsWith(needle));
 }
 
 function subsequence(needle, hay) {
@@ -182,7 +187,7 @@ function StateChip({ state }) {
 function NodeChip({ item, go }) {
   if (!item.node) return null;
   const open = item.address ? () => go(item.address) : undefined;
-  return html`<${Chip} onClick=${open} title=${item.address || item.node}>${item.node}<//>`;
+  return html`<${Chip} onClick=${open} title=${item.address || item.node}>${item.title || item.node}<//>`;
 }
 
 // A block opened by hand stays open until the next hide-all. The eye in the header
@@ -251,8 +256,8 @@ function Header({ snap, online, checked, go, showSensitive, toggleSensitive, ope
     <nav class="crumbs" aria-label="Location">
       ${path.map((step, i) =>
         i < path.length - 1
-          ? html`<button type="button" key=${step.address} onClick=${() => go(step.address)}>${step.name}</button><span class="sep">/</span>`
-          : html`<strong key=${step.address}>${step.name}</strong>`
+          ? html`<button type="button" key=${step.address} onClick=${() => go(step.address)}>${step.title || step.name}</button><span class="sep">/</span>`
+          : html`<strong key=${step.address}>${step.title || step.name}</strong>`
       )}
     </nav>
     <div class="spacer"></div>
@@ -284,7 +289,7 @@ function TreeRow({ node, depth, selected, collapsed, toggle, go }) {
             onClick=${(e) => { e.stopPropagation(); toggle(node.address); }}>${open ? icon.down : icon.right}</button>`
         : html`<span class="caret-space"></span>`}
       <${Dot} state=${h.state} />
-      <span class="name">${node.name}</span>
+      <span class="name">${node.title || node.name}</span>
       ${node.sensitive ? html`<span class="lock" title="Sensitive">${icon.lock}</span>` : null}
       ${h.mail ? html`<span class="badge" title=${plural(h.mail, "unseen mail note")}>${icon.mail}${h.mail}</span>` : null}
       ${h.inbox ? html`<span class="badge" title=${plural(h.inbox, "inbox letter")}>${icon.inbox}${h.inbox}</span>` : null}
@@ -321,7 +326,7 @@ function Side({ snap, selected, collapsed, toggle, go, open }) {
 function NeedRow({ item, go, own, showSensitive }) {
   const what = item.text
     ? html`<${Veil} on=${item.sensitive} show=${showSensitive} inline><${Fmt} text=${item.text} /><//>`
-    : own ? null : item.node;
+    : own ? null : item.title || item.node;
   const body = html`<span class="kind">${item.kinds.map((kind) => KIND[kind]).join(" · ")}</span>
     ${what ? html`<span class="what">${what}</span>` : null}
     <span class="detail">${cardDetail(item, own)}</span>`;
@@ -362,7 +367,7 @@ function Board({ board, next, go, showSensitive }) {
       <p class="quiet">No FOCUS.md for ${board?.nexus || "this nexus"} yet.</p></div>`;
   }
   return html`${board.sections.map((section) => html`<div class="block" key=${section.name}>
-      <h3 class="section-title">${section.name === board.nexus ? "This week" : `${section.name} · this week`}
+      <h3 class="section-title">${section.name === board.nexus ? "This week" : `${section.title || section.name} · this week`}
         ${section.sensitive ? html`<span class="lock" title="Sensitive">${icon.lock}</span>` : null}</h3>
       ${section.this_week.length
         ? html`<ol class="week">${section.this_week.map((item, i) => html`<${BoardItem} key=${i + item.text} item=${item}
@@ -377,7 +382,7 @@ function Board({ board, next, go, showSensitive }) {
         : null}
     </div>`)}
     ${board.always_on_missing.length
-      ? html`<p class="gap">Always-on with no line this week: ${board.always_on_missing.join(", ")}</p>`
+      ? html`<p class="gap">Always-on with no line this week: ${(board.always_on_titles || board.always_on_missing).join(", ")}</p>`
       : null}`;
 }
 
@@ -461,7 +466,8 @@ function ChairCard({ brief, go, showSensitive }) {
     <header class="chair-head">
       <p class="eyebrow">${brief.kind === "nexus" ? "Nexus" : "Chair"}
         ${brief.sensitive ? html`<span class="lock" title="Sensitive">${icon.lock}</span>` : null}</p>
-      <h1>${brief.address}</h1>
+      <h1>${brief.title || brief.address}</h1>
+      ${brief.title && brief.title !== brief.address ? html`<p class="addr">${brief.address}</p>` : null}
     </header>
     <${Veil} on=${brief.sensitive && Boolean(doc)} show=${showSensitive}>${body}<//>
   </section>`;
@@ -477,8 +483,8 @@ function NexusCard({ snap, go, showSensitive }) {
       <p class="eyebrow">${self ? "Its board" : "Nexus"}
         ${nexus.sensitive ? html`<span class="lock" title="Sensitive">${icon.lock}</span>` : null}</p>
       ${self
-        ? html`<h2>${nexus.address}</h2>`
-        : html`<h2><button type="button" class="open" onClick=${() => go(snap.view)} title="Open this nexus">${nexus.address}${icon.right}</button></h2>`}
+        ? html`<h2>${nexus.title || nexus.address}</h2>`
+        : html`<h2><button type="button" class="open" onClick=${() => go(snap.view)} title=${`Open ${nexus.address}`}>${nexus.title || nexus.address}${icon.right}</button></h2>`}
       ${!self && nexus.forefront
         ? html`<p class="nexus-ff"><${Veil} on=${nexus.sensitive} show=${showSensitive} inline><${Fmt} text=${nexus.forefront} /><//></p>`
         : null}
@@ -488,7 +494,7 @@ function NexusCard({ snap, go, showSensitive }) {
       <h3 class="section-title">Needs you ${items.length ? html`<span class="count">${items.length}</span>` : null}</h3>
       ${items.length
         ? html`<${Needs} items=${items} go=${go} cap=${6} showSensitive=${showSensitive} />`
-        : html`<p class="allquiet">${icon.check}<span>Nothing else under ${nexus.name || nexus.address} needs you.</span></p>`}
+        : html`<p class="allquiet">${icon.check}<span>Nothing else under ${nexus.title || nexus.name || nexus.address} needs you.</span></p>`}
     </div>
   </section>`;
 }
@@ -503,8 +509,8 @@ function Jump({ tree, go, close }) {
   const all = useMemo(() => walk(tree).map((row) => row.node), [tree]);
   const needle = query.trim().toLowerCase();
   const hits = all
-    .filter((node) => !needle || subsequence(needle, (node.name + " " + node.address).toLowerCase()))
-    .sort((a, b) => (needle ? Number(!a.name.toLowerCase().startsWith(needle)) - Number(!b.name.toLowerCase().startsWith(needle)) : 0))
+    .filter((node) => !needle || subsequence(needle, [node.title, node.name, node.address].join(" ").toLowerCase()))
+    .sort((a, b) => (needle ? Number(!leads(a, needle)) - Number(!leads(b, needle)) : 0))
     .slice(0, 12);
   const pick = (node) => {
     if (!node) return;
@@ -524,7 +530,7 @@ function Jump({ tree, go, close }) {
       ${hits.length
         ? html`<ul>${hits.map((node, i) => html`<li key=${node.address} class=${i === at ? "on" : ""}
             onMouseEnter=${() => setAt(i)} onClick=${() => pick(node)}>
-            <${Dot} state=${node.health.state} /><span>${node.name}</span><span class="addr">${node.address}</span></li>`)}</ul>`
+            <${Dot} state=${node.health.state} /><span>${node.title || node.name}</span><span class="addr">${node.address}</span></li>`)}</ul>`
         : html`<p class="none">No chair matches.</p>`}
     </div>
   </div>`;
