@@ -190,9 +190,9 @@ def note_remove(chair: str, note_id: str) -> dict[str, Any]:
     return _result(chair, note_remove_fn(root, home, chair, note_id))
 
 
-@mcp.tool(annotations=_READ)
+@mcp.tool(annotations=_WRITE)
 def now_view(chair: str) -> dict[str, Any]:
-    """Read FOCUS.md for this chair's nexus. A nexus also receives living NOW."""
+    """Read FOCUS.md for this chair's nexus. A nexus also receives living NOW and records an ack of shown on notes intended for it."""
     root, home = _ctx()
     return _result(chair, now_view_fn(root, home, chair))
 

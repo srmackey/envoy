@@ -49,7 +49,7 @@ Every tool takes `chair`. When `nexus.md` is present, `chair` is an address: the
 
 ## Living NOW
 
-Durable `FOCUS.md` changes only when the operator ranks it. Living NOW is a nexus query: that file, plus published sitreps of this nexus's direct chairs, plus open mail notes. The hole in the board stays empty until the operator steers. A node call returns the board of the nexus that contains the node. When `nexus.md` sets `focus:` to a direct child, the result includes that child's board as `focus`, and that child is left out of the chair lines.
+Durable `FOCUS.md` changes only when the operator ranks it. Living NOW is a nexus query: that file, plus published sitreps of this nexus's direct chairs, plus open mail notes. Listing that mail records an ack of shown when the note is intended for the calling chair. The page counts unseen notes and does not record that ack. The hole in the board stays empty until the operator steers. A node call returns the board of the nexus that contains the node. When `nexus.md` sets `focus:` to a direct child, the result includes that child's board as `focus`, and that child is left out of the chair lines.
 
 Reconcile (nexus, against a ranked line at `node: A`):
 
