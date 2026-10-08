@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-08
+
 ### Added
 
 - A localhost page that leads with the chair you open (its Forefront, what on it needs you, and its record) beside the nexus it sits in, with a tree of every chair and its health. The server serves it while it runs; when several hosts run Envoy, one serves and the others take over if it exits. `ENVOY_VIEW=0` turns it off, `ENVOY_VIEW_PORT` moves it, and `envoy view` serves it alone. Chairs show the `title:` from their `project.yaml`, or their folder name. A chair's briefing shows only the fields where its local file and published sitrep disagree. Sensitive chairs stay hidden until shown. The page does not list mail notes.
