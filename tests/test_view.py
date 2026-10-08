@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 import urllib.error
 import urllib.request
 from datetime import date, timedelta
@@ -14,7 +15,7 @@ from tests.conftest import write_map, write_project
 from envoy.notes_store import note_post
 from envoy.status_store import status_put
 from envoy.view import node_detail, snapshot
-from envoy.view_server import make_server
+from envoy.view_server import keep_page_up, make_server
 
 
 def _coast(tmp_path: Path, *, harbor_sensitive: bool = False) -> Path:
@@ -345,3 +346,37 @@ def test_page_serves_on_localhost(tmp_path: Path, home: Path) -> None:
         httpd.shutdown()
         thread.join(timeout=5)
         httpd.server_close()
+
+
+def test_envoy_waits_its_turn_to_serve_the_page(tmp_path: Path, home: Path, monkeypatch, capfd) -> None:
+    monkeypatch.delenv("ENVOY_VIEW", raising=False)
+    root = _coast(tmp_path)
+    holder = make_server(root, home, 0)
+    port = holder.server_address[1]
+    stop = threading.Event()
+    thread = keep_page_up(root, home, port=port, retry=0.05, stop=stop)
+    assert thread is not None
+    try:
+        time.sleep(0.2)
+        assert thread.is_alive(), "a taken port ended the wait"
+        holder.server_close()
+        body = b""
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            try:
+                status, body = _get(port, "/api/snapshot")
+                if status == 200:
+                    break
+            except OSError:
+                time.sleep(0.05)
+        assert json.loads(body)["chair"] == "coast"
+    finally:
+        stop.set()
+        thread.join(timeout=5)
+    assert not thread.is_alive()
+    assert capfd.readouterr().out == ""
+
+
+def test_the_page_can_be_turned_off(tmp_path: Path, home: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ENVOY_VIEW", "off")
+    assert keep_page_up(_coast(tmp_path), home, port=0) is None

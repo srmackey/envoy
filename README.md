@@ -22,12 +22,16 @@ uv run envoy --root /path/to/bulletin
 uv run envoy view --root /path/to/bulletin
 ```
 
-`envoy view` opens a page on `127.0.0.1` port `4173`: your next move, what needs you, and every chair's health in one tree. It reads the board, the roster, published sitreps, and each chair's local status and pending inbox files. Viewing counts unseen mail notes and does not mark them seen. `/` jumps to a chair, `j` and `k` move, `s` shows sensitive chairs.
+While the server runs, it also serves a page on `127.0.0.1` port `4173`, so there is nothing else to start. Every host starts its own Envoy: the first one serves the page, and the others take over if it exits. `envoy view` serves the page by itself when no host is running Envoy.
+
+The page leads with the chair you open: its Forefront, what on it needs you, and its record. The nexus it sits in stays beside it with its board and whatever else needs you there, and every chair's health is in one tree. It reads the board, the roster, published sitreps, and each chair's local status and pending inbox files. Viewing counts unseen mail notes and does not mark them seen. `/` jumps to a chair, `j` and `k` move, `s` shows sensitive chairs.
 
 | Variable | Role |
 |---|---|
 | `ENVOY_ROOT` | Bulletin root (required; or pass `--root`) |
 | `ENVOY_HOME` | Record store when the bulletin root has no `nexus.md` (default `~/.envoy`; or pass `--vault`) |
+| `ENVOY_VIEW` | Set to `0` or `off` so the server does not serve the page |
+| `ENVOY_VIEW_PORT` | Port the server uses for the page (default `4173`) |
 
 Install: [`install/README.md`](install/README.md). The block is [`install/mcp.json.examples.md`](install/mcp.json.examples.md). Host files come from `platforms.yaml` next to `nexus.md`. With no environment file, user-global host config is left alone.
 

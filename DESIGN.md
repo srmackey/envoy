@@ -68,11 +68,15 @@ Always-on names come from the Always-on column of the nexus whose board is on sc
 
 ## Local page
 
-`envoy view` serves one page on `127.0.0.1`. It reads the same board, roster, and published sitreps as the tools, plus `_status/STATUS.md` and the pending files in `inbox/` on each chair. When `_contextforge/workspaces/<folder name>/` is present, those two paths are read there instead. It counts unseen mail notes and never lists them, so viewing does not mark a note seen.
+The server serves one page on `127.0.0.1` while it runs. Each host starts its own server process, and they share one port: the first to bind it serves the page, and the rest try again every thirty seconds, so the page stays up while any of them is running. The page thread writes nothing to stdout, which carries the MCP protocol. `envoy view` serves the same page without the tools. `ENVOY_VIEW=0` turns the page off and `ENVOY_VIEW_PORT` moves it.
 
-The page opens on the next move: the first line of the board in view, which is the `focus:` child's board when one is set. Under it is one card per thing that needs you: a board line overdue or due within seven days, a line its chair's sitrep does not reflect, an always-on gap, unseen mail, inbox letters, and a chair whose local file and published sitrep disagree. Inline markup and links do not count as disagreement.
+The page reads the same board, roster, and published sitreps as the tools, plus `_status/STATUS.md` and the pending files in `inbox/` on each chair. When `_contextforge/workspaces/<folder name>/` is present, those two paths are read there instead. It counts unseen mail notes and never lists them, so viewing does not mark a note seen.
 
-The tree shows every chair with a health dot: up to date, stale (sitrep older than seven days, or a Forefront date already past), files disagree, or no sitrep. Stale is shown, not raised as a card. Selecting a chair shows its briefing and moves the board to that chair's nexus. The selection lives in the address bar, so links and the back button work.
+The chair you open leads, in the wide column: its Forefront, then its repo, age, and mail chips, then what on that chair needs you, then where it left off, its next steps, and its open loops. The nexus it sits in is the narrower column beside it, or below it on a narrow screen: that nexus's board, with the first line marked as the next move, and everything else under it that needs you. Opening a nexus uses the same two columns, with its own sitrep on the left and its board on the right. The `focus:` child's board comes first on a nexus that sets one.
+
+Something needs you when a board line is overdue or due within seven days, a line its chair's sitrep does not reflect, an always-on gap, unseen mail, inbox letters, or a chair whose local file and published sitrep disagree. Inline markup and links do not count as disagreement. A need about the open chair shows on that chair, and the nexus shows the rest, so nothing appears twice.
+
+The tree shows every chair with a health dot: up to date, stale (sitrep older than seven days, or a Forefront date already past), files disagree, or no sitrep. Stale is shown, not raised as a need. The selection lives in the address bar, so links and the back button work.
 
 A sensitive chair's content stays hidden until you show it. Its published sitrep is not compared with its local file, because it publishes less on purpose.
 

@@ -19,6 +19,7 @@ from envoy.notes_store import with_mail_notice
 from envoy.now import now_view as now_view_fn
 from envoy.status_store import status_get as status_get_fn
 from envoy.status_store import status_put as status_put_fn
+from envoy.view_server import keep_page_up
 
 INSTRUCTIONS = """\
 Envoy is a local bulletin MCP. Files stay the record for the roster, FOCUS.md, local STATUS, and inbox letters. Envoy stores published sitreps and mail notes. Every call sends chair. When nexus.md is at the bulletin root, chair is an address: the nexus's own name, or nexus/node. Each nexus folder holds that nexus's records in _envoy/. The record name stays the folder basename. chair nexus still names the root nexus. A bare name that matches one node is that node. When nexus.md is absent, chair is nexus or a MAP.md name and records stay in ENVOY_HOME. Session living NOW is now_view. map_list is the roster API. Do not poll sibling STATUS files once this server is live. Session briefs live on the chair-memory store, not here.
@@ -198,4 +199,5 @@ def now_view(chair: str) -> dict[str, Any]:
 
 def run(root: Path, home: Path) -> None:
     set_context(root, home)
+    keep_page_up(root, home)
     mcp.run()
