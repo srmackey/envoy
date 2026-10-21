@@ -39,9 +39,9 @@ Folder for a map `name`: when `nexus.md` is absent, the bulletin root for `nexus
 
 A node opts in. Later message types are more services, not more fields on these two.
 
-**Status.** One vault document per subscriber. Publish overwrites. Not a queue, not acked. The local digest is the node's record. The vault document is the sitrep the parent reads. Ordinary chairs publish the whole digest. Discreet chairs publish a thin sitrep. Subscriber articles: `articles/methodology/envoy-status.md` and the discreet variant on the chair's map, not in this repo's extract list.
+**Status.** One vault document per subscriber. Publish overwrites. Not a queue, not acked. The local digest is the node's record. The vault document is the sitrep the parent reads. Ordinary chairs publish the whole digest. Discreet chairs publish a thin sitrep. Subscriber articles: `provisions/articles/methodology/envoy-status.md` and the discreet variant on the chair's map, not in this repo's extract list.
 
-**Mail.** The note is a bell. The letter is the inbox file. Nodes never write another node's inbox. The nexus chair is the only deliverer. Subscriber article: `articles/methodology/envoy-mail.md`.
+**Mail.** The note is a bell. The letter is the inbox file. Nodes never write another node's inbox. The nexus chair is the only deliverer. Subscriber article: `provisions/articles/methodology/envoy-mail.md`.
 
 ## Chair identity
 

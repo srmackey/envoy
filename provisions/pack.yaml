@@ -4,6 +4,6 @@ kind: theme
 version: 0.2.3
 articles:
   - id: methodology/envoy-status
-    path: articles/methodology/envoy-status.md
+    path: provisions/articles/methodology/envoy-status.md
   - id: methodology/envoy-mail
-    path: articles/methodology/envoy-mail.md
+    path: provisions/articles/methodology/envoy-mail.md
