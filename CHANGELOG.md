@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- A ranked line and a Forefront that use the same words, or where one only adds up to four words, read as current. A line that uses different words stays unaccounted.
 - The public contract lives under `provisions/articles/`. `provisions/pack.yaml` points at those files. The shelf copy is unchanged.
 
 ## [0.4.1] - 2026-10-08

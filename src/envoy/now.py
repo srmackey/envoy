@@ -13,6 +13,9 @@ from envoy.notes_store import mail_outstanding, note_list
 from envoy.status_store import status_get
 
 LINE_RE = re.compile(r"\*\*(.+?)\*\*\s*·\s*due:\s*(\S+)\s*·\s*node:\s*(\S+)")
+_WORD = re.compile(r"[0-9A-Za-z]+(?:-[0-9A-Za-z]+)*")
+# One side may add this many words. Past that, the line has changed.
+_FEW_WORDS = 4
 
 
 def load_always_on(root: Path) -> list[str]:
@@ -35,6 +38,27 @@ def load_always_on(root: Path) -> list[str]:
 
 def _norm(text: str) -> str:
     return " ".join(text.split())
+
+
+def _words(text: str) -> set[str]:
+    return {match.group(0).casefold() for match in _WORD.finditer(text)}
+
+
+def _same_line(board: str, forefront: str) -> bool:
+    """True when the two lines are the same words, or one only adds a few.
+
+    A trailing period drops out with the other punctuation. Words added on
+    both sides are a different line. This does not treat synonyms as equal.
+    """
+    board_words = _words(board)
+    forefront_words = _words(forefront)
+    if not board_words or not forefront_words:
+        return False
+    extra_board = board_words - forefront_words
+    extra_forefront = forefront_words - board_words
+    if extra_board and extra_forefront:
+        return False
+    return len(extra_board) <= _FEW_WORDS and len(extra_forefront) <= _FEW_WORDS
 
 
 def _parse_items(block: str) -> list[dict[str, Any]]:
@@ -80,7 +104,7 @@ def _state(board_text: str, document: dict[str, Any] | None) -> tuple[str, str |
     trail = " ".join(str(part) for part in (document.get("where_i_left_off") or []))
     repo = str(document.get("repo") or "")
     board = _norm(board_text)
-    if _norm(forefront) == board:
+    if board and _same_line(board, forefront):
         return "current", forefront
     if board and board in _norm(trail):
         return "accounted", forefront

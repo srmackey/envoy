@@ -118,6 +118,72 @@ def test_now_view_unaccounted_when_trail_silent(root: Path, home: Path) -> None:
     assert row["state"] == "unaccounted"
 
 
+def test_now_view_current_when_forefront_adds_a_few_words(root: Path, home: Path) -> None:
+    _seed(root)
+    status_put(
+        root, home, chair="harbor",
+        forefront="Lane the first pack, on the cove line, reef side.",
+        where_i_left_off=["still lining it up"],
+        next_steps=[],
+        open_loops=[],
+    )
+    (root / "FOCUS.md").write_text(
+        "# FOCUS\nupdated: 2026-08-25\n\n## This week\n\n"
+        "1. **Lane the first cove pack** · due: none · node: harbor\n",
+        encoding="utf-8",
+    )
+    got = now_view(root, home, chair="nexus")
+    row = next(r for r in got["reconcile"] if r["text"] == "Lane the first cove pack")
+    assert row["state"] == "current"
+
+
+def test_now_view_current_when_only_punctuation_differs(root: Path, home: Path) -> None:
+    _seed(root)
+    status_put(
+        root, home, chair="harbor",
+        forefront="Chart the harbor.",
+        where_i_left_off=["still on it"],
+        next_steps=[],
+        open_loops=[],
+    )
+    got = now_view(root, home, chair="nexus")
+    row = next(r for r in got["reconcile"] if r["text"] == "Chart the harbor")
+    assert row["state"] == "current"
+
+
+def test_now_view_unaccounted_when_both_sides_add_words(root: Path, home: Path) -> None:
+    _seed(root)
+    status_put(
+        root, home, chair="harbor",
+        forefront="Harbor review meeting is 2026-10-22. Written follow-up waits until after that meeting.",
+        where_i_left_off=["date is set"],
+        next_steps=[],
+        open_loops=[],
+    )
+    (root / "FOCUS.md").write_text(
+        "# FOCUS\nupdated: 2026-08-25\n\n## This week\n\n"
+        "1. **Book the harbor review, then confirm the date in writing** · due: none · node: harbor\n",
+        encoding="utf-8",
+    )
+    got = now_view(root, home, chair="nexus")
+    row = next(r for r in got["reconcile"] if "harbor review" in r["text"])
+    assert row["state"] == "unaccounted"
+
+
+def test_now_view_unaccounted_when_the_added_tail_is_long(root: Path, home: Path) -> None:
+    _seed(root)
+    status_put(
+        root, home, chair="harbor",
+        forefront="Chart the harbor on the north cove line today",
+        where_i_left_off=["still on it"],
+        next_steps=[],
+        open_loops=[],
+    )
+    got = now_view(root, home, chair="nexus")
+    row = next(r for r in got["reconcile"] if r["text"] == "Chart the harbor")
+    assert row["state"] == "unaccounted"
+
+
 def test_now_view_current_when_forefront_matches(root: Path, home: Path) -> None:
     _seed(root)
     status_put(

@@ -53,16 +53,16 @@ Durable `FOCUS.md` changes only when the operator ranks it. Living NOW is a nexu
 
 Reconcile (nexus, against a ranked line at `node: A`):
 
-Normalize whitespace. Board substance is the one-line text of the ranked item.
+Normalize whitespace. Board substance is the one-line text of the ranked item. The current check compares words: case and punctuation do not count.
 
-- `current` if A's published Forefront equals the board substance.
+- `current` if the Forefront and the board substance use the same words, or one of them adds at most four words and the other adds none.
 - `accounted` if the board substance appears in the joined Where I left off text.
 - `satisfied` if it appears in the published `repo:` line. Not a flag.
 - `no_trail` if A has no sitrep (flag: setup gap).
 - `unaccounted` otherwise (flag).
 - Lines with `node: none` are not reconciled.
 
-Envoy does not infer synonyms. Leftover mismatch is `unaccounted`.
+Envoy does not infer synonyms. A line with words of its own stays `unaccounted`.
 
 Always-on names come from the Always-on column of the nexus whose board is on screen. Without `nexus.md`, they come from `always-on.yaml`. `now_view` reports `always_on_missing` for names with no This-week line on that board. It does not invent lines.
 
