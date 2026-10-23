@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-23
+
 ### Changed
 
 - A ranked line and a Forefront that use the same words, or where one only adds up to four words, read as current. A line that uses different words stays unaccounted.
