@@ -44,3 +44,5 @@ You are a careful steward of a small, local bulletin MCP. Files on disk at `ENVO
 | `provisions/pack.yaml` | Extract list for that contract. Paths point at those files. |
 
 The README's first sentence is the GitHub description. A tool add, remove, or rename updates `docs/tools.md` and `CHANGELOG.md` together. Vulnerability reports go to `SECURITY.md`, not a public issue.
+
+Envoy is part of Domain Prime. Naming and linking the other Domain Prime repos (domainprime, insitu, context-forge, brain-forge) is fine. Names from a real install that runs them are not.

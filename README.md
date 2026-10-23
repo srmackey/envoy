@@ -1,12 +1,47 @@
 # Envoy
 
+Envoy carries messages between walled-off AI projects and keeps one ranked board of priorities, with a local dashboard of everything that needs you.
+
+## The problem
+
+Keep your AI projects properly apart and each one works blind. It can't see what the others are doing, so it can't tell them anything either. Priorities live in your head, or in a list no agent reads. And when you sit down for the week, nothing shows you which project has slipped and which one is waiting on you.
+
+## What you get
+
+- **Messages without peeking.** A project posts a note; its line of work passes it on. No project writes into another project's files; mail goes through the nexus above them.
+- **One ranked board.** Each line of work keeps a short, ranked list of what matters this week. Every chair under it sees the same board.
+- **Drift caught for you.** Each project publishes a short status report, and Envoy checks it against the board. A project whose report doesn't reflect its board line gets flagged.
+- **A dashboard of what needs you.** A local page shows every chair's health, plus what needs you now: lines overdue or due within seven days, drift, unseen mail, waiting letters, and reports that disagree with their own files.
+- **Privacy where you need it.** A sensitive chair's content stays hidden on the page until you show it, and mail crossing its walls stops at a gate for you to decide.
+
+## A day with it
+
+A made-up line of work, Clients, holds two projects: Client A and Client B. Client B is marked sensitive.
+
+Monday you rank the Clients board: ship Client A's report by Thursday, then review Client B's contract. Both projects see that board when they ask what's next.
+
+Tuesday, working in Client A, the agent finds a question only Client B can answer. It doesn't open Client B. It posts a mail note and leaves the letter in the Clients inbox, one level up. Only the Clients chair delivers letters down. Because Client B is sensitive, the note waits at a gate until you choose to deliver, hold, or set it aside.
+
+Wednesday morning you open the dashboard. Client A's report is due tomorrow, so it shows under what needs you. Client B published a status report last week that still says nothing about the contract, so Envoy flags that line as unaccounted. Its details stay hidden until you click to show them.
+
+## Part of Domain Prime
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/domain-prime-dark.svg">
+  <img alt="Where Envoy sits in the Domain Prime tree: mail and status travel up through each nexus." src="docs/domain-prime-light.svg" width="760">
+</picture>
+
+Envoy is one of four engines in [Domain Prime](https://github.com/srmackey/domainprime), a local-first system for running many AI projects as a tree. Projects can't see into each other. Envoy carries their messages, always through a nexus, and keeps the ranked board. Step in at the top and the dashboard shows the whole system. Envoy also runs on its own: point it at any folder with a roster and it works without the rest. Terms like chair, nexus, and sitrep are defined in the [glossary](https://github.com/srmackey/domainprime/blob/main/docs/glossary.md).
+
+## How it works
+
 Envoy gives an AI client a local bulletin: who belongs, what each one last published, and the mail notes between them.
 
-Not a wiki, not standing guidance, and not session briefs. It does not deliver inbox letters. Files on disk stay the record. The vault holds published sitreps and mail notes.
+It is not a wiki, not standing guidance, and not session briefs. It does not deliver inbox letters. Files on disk stay the record. The vault holds published sitreps and mail notes.
 
 A clone can run it against any bulletin root. Wire it into a larger system, or use it on its own.
 
-## Stack
+### Stack
 
 - Python 3.11+, `uv`, FastMCP, Pydantic v2, PyYAML
 - `MAP.md` and `FOCUS.md` at the bulletin root (`ENVOY_ROOT`). When that folder has `nexus.md`, that file is the roster, each nexus has its own `FOCUS.md`, and each nexus folder holds `_envoy/`.
