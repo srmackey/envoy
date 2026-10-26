@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-25
+
+### Changed
+
+- The page sorts every signal by who clears it. Needs you is amber: a board date that has passed, a board line its chair's sitrep does not reflect, an always-on gap, and an item a settle pass left waiting. Housekeeping is blue: a sitrep that differs from its local file, an unseen mail note, and a chair that owes a sitrep and has none. One line at the top of the nexus card counts the housekeeping and gives the one command that clears it. A waiting letter is listed under needs you without a color.
+- Every signal has an info mark that says who clears it, the step, and the command to copy. It opens on hover, focus, or a tap.
+- Nothing goes stale by age, and dates inside a Forefront are no longer read as deadlines. A coming due date, when a chair last updated, and a dirty repo are plain text. The page uses no red or purple.
+- The tree dot is a plain circle: green, blue, amber, or gray for a chair whose registry row does not list `status`.
+- A board line counts toward the chair it names on whichever nexus board holds it, not only the board in view.
+
+### Added
+
+- The page shows how many files are on a chair's `desk/`.
+- When `nexus.md` is present, the page reads `settle-wait.md` from each nexus's overlay and shows each leftover on the chair it names, with the date of the pass. A sensitive chair shows only a count.
+
 ## [0.4.2] - 2026-10-23
 
 ### Changed

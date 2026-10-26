@@ -132,7 +132,8 @@ def test_snapshot_reads_tree_board_and_next_move(tmp_path: Path, home: Path) -> 
     assert ledger["state"] == "unaccounted"
     assert snap["next"]["text"] == "Paint the dock"
     assert snap["next"]["board"] == "harbor"
-    assert snap["attention"][0]["kinds"] == ["due", "unaccounted"]
+    # Due tomorrow is state on the line, not a signal.
+    assert snap["attention"][0]["kinds"] == ["unaccounted"]
     assert snap["attention"][0]["address"] == "coast/ledger"
     assert "mail" not in snap
 
@@ -159,7 +160,7 @@ def test_the_open_chair_keeps_its_own_cards(tmp_path: Path, home: Path) -> None:
     (inbox / "letter.md").write_text("hello\n", encoding="utf-8")
     snap = snapshot(root, home, "ledger", today=date(2026, 10, 3))
     own = snap["briefing"]["attention"]
-    assert sorted(card["kinds"] for card in own) == [["due", "unaccounted"], ["inbox"]]
+    assert sorted(card["kinds"] for card in own) == [["inbox"], ["unaccounted"]]
     assert {card["address"] for card in own} == {"coast/ledger"}
     assert not [card for card in snap["attention"] if card.get("address") == "coast/ledger"]
     assert snap["nexus"]["address"] == "coast"
@@ -211,11 +212,14 @@ def test_overlay_inbox_and_disagreement(tmp_path: Path, home: Path) -> None:
     assert detail["inbox_count"] == 1
     snap = snapshot(root, home, "coast")
     health = _health(snap, "coast/ledger")
-    assert health["state"] == "drift"
+    assert health["signals"] == ["inbox", "drift"]
+    assert health["drift"] is True
     assert health["inbox"] == 1
     card = next(item for item in snap["attention"] if item.get("address") == "coast/ledger" and "text" not in item)
-    assert card["kinds"] == ["inbox", "drift"]
+    assert card["kinds"] == ["inbox"]
     assert card["inbox"] == 1
+    chore = next(item for item in snap["housekeeping"]["cards"] if item.get("address") == "coast/ledger")
+    assert chore["kinds"] == ["drift"]
     assert snap["inbox_count"] == 1
 
 
@@ -255,20 +259,180 @@ def test_markup_alone_is_not_drift(tmp_path: Path, home: Path) -> None:
     assert detail["diverged"] is False
 
 
-def test_old_sitrep_and_past_forefront_date_are_stale(tmp_path: Path, home: Path) -> None:
+def test_age_and_forefront_dates_are_not_signals(tmp_path: Path, home: Path) -> None:
     root = _coast(tmp_path)
+    for board in (root / "FOCUS.md", root / "harbor" / "FOCUS.md"):
+        board.write_text("# FOCUS\nupdated: 2026-10-03\n\n## This week\n", encoding="utf-8")
     status_put(root, home, "ledger", "Count the tide", [], [], [])
-    status_put(root, home, "dock", "Paint before 2020-01-01", [], [], [])
+    status_put(root, home, "dock", "Paint before 2020-01-01, see `specs/2020-01-01-paint.md`", [], [], [])
     later = snapshot(root, home, "coast", today=date.today() + timedelta(days=30))
     ledger = _health(later, "coast/ledger")
-    assert ledger["state"] == "stale"
-    assert ledger["stale_reason"] == "old"
+    assert ledger["state"] == "up_to_date"
     assert ledger["age_days"] == 30
+    assert "stale" not in ledger
     assert not [item for item in later["attention"] if item.get("address") == "coast/ledger" and "text" not in item]
-    now = snapshot(root, home, "coast")
-    assert _health(now, "coast/ledger")["state"] == "fresh"
-    assert _health(now, "harbor/dock")["stale_reason"] == "past_date"
-    assert _health(now, "harbor")["state"] == "silent"
+    assert _health(later, "harbor/dock")["state"] == "up_to_date"
+
+
+def test_a_waiting_letter_is_listed_but_does_not_color_the_chair(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path)
+    for board in (root / "FOCUS.md", root / "harbor" / "FOCUS.md"):
+        board.write_text("# FOCUS\nupdated: 2026-10-03\n\n## This week\n", encoding="utf-8")
+    status_put(root, home, "ledger", "Count the tide", ["counted yesterday"], ["count again"], [], repo="main · clean")
+    _local(root / "ledger", "Count the tide")
+    inbox = root / "ledger" / "inbox"
+    inbox.mkdir()
+    (inbox / "letter.md").write_text("hello\n", encoding="utf-8")
+    snap = snapshot(root, home, "coast")
+    health = _health(snap, "coast/ledger")
+    assert (health["state"], health["inbox"]) == ("up_to_date", 1)
+    card = next(card for card in snap["attention"] if card.get("address") == "coast/ledger")
+    assert (card["class"], card["kinds"]) == ("notice", ["inbox"])
+    assert card["fixes"][0]["command"] == "process the inbox"
+
+
+def test_a_chair_that_owes_a_sitrep_and_has_none_is_housekeeping(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path)
+    snap = snapshot(root, home, "coast")
+    harbor = _health(snap, "harbor")
+    assert harbor["state"] == "housekeeping"
+    assert harbor["signals"] == ["no_sitrep"]
+    chore = next(item for item in snap["housekeeping"]["cards"] if item["address"] == "harbor")
+    assert chore["class"] == "housekeeping"
+    assert chore["fixes"][0]["command"] == "/settle"
+
+
+def test_a_chair_that_does_not_publish_is_neither(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path)
+    with (root / "nexus.md").open("a", encoding="utf-8") as handle:
+        handle.write("| shed | shed/ | node | active | no | no | none | storage |\n")
+        handle.write("| loft | loft/ | node | parked | no | no | none | old |\n")
+    (root / "shed").mkdir()
+    (root / "loft").mkdir()
+    snap = snapshot(root, home, "coast")
+    assert _health(snap, "coast/shed")["state"] == "no_publish"
+    assert _health(snap, "coast/loft")["state"] == "no_publish"
+    everything = snap["attention"] + snap["housekeeping"]["cards"]
+    assert not [card for card in everything if card.get("address") in ("coast/shed", "coast/loft")]
+
+
+def test_every_signal_has_a_class_and_a_fix(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path)
+    (root / "FOCUS.md").write_text(
+        "# FOCUS\nupdated: 2026-10-03\n\n## This week\n\n"
+        "1. **Mind the ledger** · due: 2026-10-01 · node: ledger\n"
+        "2. **Sweep the quay** · due: 2026-09-30 · node: none\n",
+        encoding="utf-8",
+    )
+    status_put(root, home, "ledger", "Count the tide", ["counted yesterday"], ["count again"], [], repo="main · clean")
+    _local(root / "ledger", "Walk the tide line")
+    note_post(root, home, chair="coast", intended_for="coast/ledger", inbox="ledger/inbox/letter.md", why="deliver")
+    inbox = root / "ledger" / "inbox"
+    inbox.mkdir()
+    (inbox / "letter.md").write_text("hello\n", encoding="utf-8")
+    snap = snapshot(root, home, "coast", today=date(2026, 10, 3))
+
+    line = next(card for card in snap["attention"] if card.get("text") == "Mind the ledger")
+    assert line["class"] == "needs_you"
+    assert line["kinds"] == ["date_passed", "unaccounted"]
+    passed, missing = line["fixes"]
+    assert (passed["by"], passed["command"], passed["folder"]) == ("you", "weekly review", "coast")
+    assert "coast/ledger" in missing["step"]
+
+    quay = next(card for card in snap["attention"] if card.get("text") == "Sweep the quay")
+    assert quay["kinds"] == ["date_passed"]
+    assert quay["address"] is None and quay["board"] == "coast"
+
+    letters = next(card for card in snap["attention"] if card.get("address") == "coast/ledger" and "text" not in card)
+    assert letters["kinds"] == ["inbox"]
+    assert letters["class"] == "notice"
+    assert letters["fixes"][0] == {
+        "kind": "inbox", "by": "you", "command": "process the inbox",
+        "folder": "coast/ledger", "step": "Say process the inbox in coast/ledger.",
+    }
+
+    chore = next(card for card in snap["housekeeping"]["cards"] if card.get("address") == "coast/ledger")
+    assert chore["class"] == "housekeeping"
+    assert chore["kinds"] == ["drift", "mail"]
+    assert {fix["by"] for fix in chore["fixes"]} == {"agent"}
+    assert {fix["command"] for fix in chore["fixes"]} == {"/settle"}
+    assert "/settle-pass all from coast" in chore["fixes"][0]["step"]
+
+    summary = snap["housekeeping"]
+    # Ledger, plus the three chairs that owe a sitrep and have none.
+    assert {card["address"] for card in summary["cards"]} == {"coast", "harbor", "harbor/dock", "coast/ledger"}
+    assert summary["count"] == 4
+    assert (summary["fix"]["command"], summary["fix"]["folder"]) == ("/settle-pass all", "coast")
+
+    assert _health(snap, "coast/ledger")["state"] == "needs_you"
+    assert _health(snap, "coast")["state"] == "needs_you"  # the quay line sits on its board
+
+
+def test_settle_wait_leftovers_land_on_the_chair_they_name(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path, harbor_sensitive=True)
+    overlay = root / "_contextforge" / "workspaces" / "coast"
+    overlay.mkdir(parents=True)
+    (overlay / "settle-wait.md").write_text(
+        "\n".join([
+            "---",
+            "title: Settle wait",
+            "target: all",
+            "date: 2026-10-25",
+            "---",
+            "",
+            "# Settle wait",
+            "",
+            "## coast/ledger",
+            "- surface: Open loops",
+            "- line: Ask the harbor master",
+            "- why: only copy",
+            "- surface: Next steps",
+            "- line: Recount the tide",
+            "- why: no home",
+            "",
+            "## dock",
+            "- surface: Open loops",
+            "- line: a private detail",
+            "- why: only copy",
+            "",
+            "## The Old Pier",
+            "- surface: Forefront",
+            "- line: Mend the pier",
+            "- why: no home",
+            "",
+        ]) + "\n",
+        encoding="utf-8",
+    )
+    snap = snapshot(root, home, "coast", today=date(2026, 10, 3))
+
+    ledger = _health(snap, "coast/ledger")
+    assert (ledger["waiting"], ledger["state"]) == (2, "needs_you")
+    card = next(card for card in snap["attention"] if card.get("address") == "coast/ledger" and "text" not in card)
+    assert card["kinds"] == ["waiting"]
+    assert [item["line"] for item in card["items"]] == ["Ask the harbor master", "Recount the tide"]
+    assert {item["date"] for item in card["items"]} == {"2026-10-25"}
+    assert card["fixes"][0]["folder"] == "coast"
+
+    dock = next(card for card in snap["attention"] if card.get("address") == "harbor/dock")
+    assert dock["sensitive"] is True
+    assert (dock["waiting"], dock["items"]) == (1, [])
+
+    # Coast is the open chair, so its own card rides with the briefing.
+    pier = next(card for card in snap["briefing"]["attention"] if "waiting" in card["kinds"])
+    assert pier["items"][0]["heading"] == "The Old Pier"
+
+
+def test_desk_count_skips_readme_archive_and_hidden_files(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path)
+    desk = root / "desk"
+    (desk / "_archive").mkdir(parents=True)
+    for name in ("one.md", "two.md", "README.md", ".hidden", "desktop.ini"):
+        (desk / name).write_text("x\n", encoding="utf-8")
+    (desk / "_archive" / "old.md").write_text("x\n", encoding="utf-8")
+    snap = snapshot(root, home, "coast")
+    assert _health(snap, "coast")["desk"] == 2
+    assert _health(snap, "coast/ledger")["desk"] == 0
+    assert "desk" not in [kind for card in snap["attention"] for kind in card["kinds"]]
 
 
 def test_sensitive_nexus_marks_its_chairs_and_board(tmp_path: Path, home: Path) -> None:
@@ -328,6 +492,25 @@ def test_snapshot_does_not_ack_mail(root: Path, home: Path) -> None:
     assert snap["next"]["text"] == "Chart the harbor"
     saved = json.loads((home / "mail" / f"{note_id}.json").read_text(encoding="utf-8"))
     assert saved["ack"] is None
+
+
+def test_on_its_own_a_fix_names_no_command(root: Path, home: Path) -> None:
+    write_map(
+        root,
+        [
+            {"name": "nexus", "inbox": True, "description": "Nexus", "status": "active"},
+            {"name": "harbor", "inbox": True, "description": "Harbor", "status": "active"},
+        ],
+    )
+    write_project(root, {"name": "nexus", "services": ["status", "mail"]})
+    write_project(root / "harbor", {"name": "harbor", "services": ["mail"]})
+    snap = snapshot(root, home, "nexus")
+    assert _health(snap, "harbor")["state"] == "no_publish"
+    chore = snap["housekeeping"]["cards"][0]
+    assert chore["kinds"] == ["no_sitrep"]
+    assert chore["fixes"][0]["command"] is None
+    assert chore["fixes"][0]["step"] == "Write this chair's status file and publish it."
+    assert snap["housekeeping"]["fix"]["command"] is None
 
 
 def _get(port: int, path: str) -> tuple[int, bytes]:

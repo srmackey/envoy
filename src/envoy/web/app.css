@@ -12,14 +12,14 @@
   --select: #e8dcc7;
   --accent: #2f6b4f;
   --accent-soft: #e2eee6;
-  --fresh: #3f8f5f;
-  --stale: #b98317;
-  --stale-soft: #fbf0d8;
-  --drift: #7357c0;
-  --drift-soft: #eee8fa;
+  /* Three states take a color, and only these: up to date, housekeeping (an agent
+     clears it), and needs you (the warmer of the two). Everything else is ink. */
+  --fresh: #4a8f63;
+  --chore: #4b6f93;
+  --chore-soft: #e7eef5;
+  --needs: #b0670f;
+  --needs-soft: #f8ecdc;
   --silent: #b9b1a5;
-  --danger: #bf4a30;
-  --danger-soft: #fbe8e2;
   --shadow: 0 1px 2px rgb(40 30 15 / 0.05), 0 8px 24px rgb(40 30 15 / 0.06);
   --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
   --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
@@ -41,13 +41,11 @@
     --accent: #72c096;
     --accent-soft: #1e3128;
     --fresh: #5cb37f;
-    --stale: #e0ab45;
-    --stale-soft: #352a13;
-    --drift: #a890f2;
-    --drift-soft: #29223f;
+    --chore: #8eb2d8;
+    --chore-soft: #1c2733;
+    --needs: #e7a24f;
+    --needs-soft: #352614;
     --silent: #615a50;
-    --danger: #ef7d61;
-    --danger-soft: #3a211a;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.25);
   }
 }
@@ -136,7 +134,7 @@ svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none;
 .tool[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
 .live { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; white-space: nowrap; }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--fresh); box-shadow: 0 0 0 0 var(--fresh); animation: pulse 2.4s ease-out infinite; }
-.live.off .pulse { background: var(--danger); animation: none; }
+.live.off .pulse { background: var(--muted); animation: none; }
 @keyframes slide-in {
   from { transform: translateX(-102%); }
   to { transform: none; }
@@ -190,14 +188,15 @@ svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none;
 .caret svg { width: 14px; height: 14px; }
 .lock { color: var(--muted); display: inline-flex; }
 .lock svg { width: 13px; height: 13px; }
-.badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 600; color: var(--accent); }
+.badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
 .badge svg { width: 13px; height: 13px; }
 
+/* One shape; the color is the state, and the label says it in words. */
 .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
-.dot.fresh { background: var(--fresh); }
-.dot.stale { background: var(--stale); }
-.dot.drift { background: var(--drift); }
-.dot.silent { background: transparent; box-shadow: inset 0 0 0 1.6px var(--silent); }
+.dot.up_to_date { background: var(--fresh); }
+.dot.housekeeping { background: var(--chore); }
+.dot.needs_you { background: var(--needs); }
+.dot.no_publish { background: var(--silent); }
 
 .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; padding: 12px 18px 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 7px; }
@@ -230,38 +229,63 @@ svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none;
 .chip .clip { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 button.chip { cursor: pointer; }
 button.chip:hover { border-color: var(--line-2); color: var(--ink); }
-.chip.danger { background: var(--danger-soft); color: var(--danger); border-color: transparent; font-weight: 600; }
-.chip.warn { background: var(--stale-soft); color: var(--stale); border-color: transparent; font-weight: 600; }
 .chip.good { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
-.chip.drift { background: var(--drift-soft); color: var(--drift); border-color: transparent; }
+.chip.needs_you { background: var(--needs-soft); color: var(--needs); border-color: transparent; font-weight: 600; }
+.chip.chore { background: var(--chore-soft); color: var(--chore); border-color: transparent; }
 .chip.quiet { background: transparent; color: var(--muted); }
+.chip .fix { margin-right: -5px; }
+.chip .fix-i { width: 18px; height: 18px; color: inherit; }
 
 .section-title { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 11.5px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: 11px; letter-spacing: 0; }
 .needs { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+/* No overflow clip on a card, so its popover can leave it; the class bar is a shadow. */
 .need {
   display: grid;
-  gap: 2px;
-  width: 100%;
-  text-align: left;
-  padding: 9px 12px 10px 15px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   border-radius: 10px;
   border: 1px solid var(--line);
   background: var(--panel);
-  position: relative;
-  overflow: hidden;
+  box-shadow: inset 3px 0 0 var(--k, var(--line-2));
 }
-.need::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--k, var(--line-2)); }
-button.need { cursor: pointer; }
-button.need:hover { border-color: var(--line-2); background: var(--raised); box-shadow: var(--shadow); }
+.need:has(button.need-main:hover) { border-color: var(--line-2); background: var(--raised); box-shadow: inset 3px 0 0 var(--k, var(--line-2)), var(--shadow); }
+.need-main { display: grid; gap: 2px; min-width: 0; width: 100%; padding: 9px 4px 10px 15px; border: 0; border-radius: 10px; background: none; text-align: left; }
+button.need-main { cursor: pointer; }
+.need > .fix { margin: 8px 8px 0 0; }
 .need .kind { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--k, var(--muted)); }
 .need .what { font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .need .detail { font-size: 12.5px; color: var(--muted); }
-.need.overdue { --k: var(--danger); }
-.need.due, .need.stale { --k: var(--stale); }
-.need.mail, .need.inbox { --k: var(--accent); }
-.need.drift, .need.unaccounted { --k: var(--drift); }
-.need.always_on { --k: var(--muted); }
+.need .left { display: grid; gap: 2px; margin-top: 4px; font-size: 12.5px; color: var(--ink-2); }
+.need .left-line { display: block; }
+.need.needs_you { --k: var(--needs); }
+.need.housekeeping { --k: var(--chore); }
+.need.notice { --k: var(--muted); }
+
+/* How a signal clears: hover, focus, or tap opens it; the padding keeps the pointer inside on the way to Copy. */
+.fix { position: relative; display: inline-flex; }
+.fix-i { display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; }
+.fix-i:hover, .fix:focus-within .fix-i { background: var(--hover); color: var(--ink); }
+.fix-i svg { width: 15px; height: 15px; }
+.pop { display: none; position: absolute; top: 100%; left: -8px; z-index: 12; padding-top: 6px; width: max-content; max-width: min(320px, calc(100vw - 32px)); white-space: normal; text-align: left; }
+.fix.end .pop { left: auto; right: -8px; }
+.fix:hover .pop, .fix:focus-within .pop { display: block; }
+.pop-box { display: grid; gap: 12px; padding: 12px 14px; border-radius: 10px; background: var(--raised); border: 1px solid var(--line-2); box-shadow: var(--shadow); font-size: 13px; line-height: 1.45; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+.pop-fix { display: grid; gap: 4px; }
+.pop-who { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.pop-step { display: block; }
+.pop-cmd { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.copy { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink-2); font-size: 12px; font-weight: 500; cursor: pointer; }
+.copy:hover { border-color: var(--line-2); color: var(--ink); }
+.copy svg { width: 13px; height: 13px; }
+
+.chores { margin: 0 0 18px; padding: 10px 12px; border-radius: 10px; background: var(--chore-soft); }
+.chores-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.chores-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 0; border: 0; background: none; cursor: pointer; font-weight: 600; color: var(--chore); }
+.chores-toggle svg { width: 14px; height: 14px; }
+.chores-cmd { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.chores-where { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.chores .needs { margin-top: 10px; }
 .more { margin-top: 8px; border: 0; background: none; color: var(--accent); cursor: pointer; padding: 4px 0; font-weight: 600; }
 .allquiet { display: flex; align-items: center; gap: 10px; margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font-size: 13px; }
 .allquiet svg { width: 18px; height: 18px; }
@@ -290,10 +314,9 @@ details.later ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid;
 details.later li { padding: 7px 8px; border-radius: 8px; }
 details.later li:hover { background: var(--hover); }
 .quiet { color: var(--muted); margin: 0; }
-.gap { margin-top: 14px; padding: 9px 12px; border-radius: 9px; background: var(--stale-soft); color: var(--stale); font-size: 13px; }
+.gap { margin-top: 14px; padding: 9px 12px; border-radius: 9px; background: var(--needs-soft); color: var(--needs); font-size: 13px; }
 
-.chair { position: relative; padding: 22px 28px 26px; border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
-.chair::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--accent); }
+.chair { position: relative; padding: 22px 28px 26px; border-radius: 16px; box-shadow: inset 4px 0 0 var(--accent), var(--shadow); }
 .chair-head { display: grid; gap: 4px; margin-bottom: 10px; }
 .chair-head h1 { margin: 0; font: 600 18px/1.3 var(--display); letter-spacing: -0.01em; color: var(--ink-2); overflow-wrap: anywhere; }
 .chair-head .addr { margin: 0; font: 12px/1.3 var(--mono); color: var(--muted); }
@@ -312,14 +335,14 @@ details.later li:hover { background: var(--hover); }
 .source { margin: 22px 0 0; font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
 .source svg { width: 14px; height: 14px; }
 
-.drift-box { margin: 0 0 6px; padding: 14px 16px; border-radius: 12px; background: var(--drift-soft); }
+.drift-box { margin: 0 0 6px; padding: 14px 16px; border-radius: 12px; background: var(--chore-soft); }
 .drift-box p { margin: 0 0 10px; color: var(--ink-2); }
-.drift-box strong { color: var(--drift); }
+.drift-box strong { color: var(--chore); }
 .diff { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 .diff > div { padding: 10px 12px; border-radius: 9px; background: var(--raised); font-size: 13px; }
 .diff .side-label { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
 .diff ul { margin: 0; padding-left: 16px; }
-.diff .field { font-weight: 600; font-size: 12.5px; color: var(--drift); margin-top: 10px; }
+.diff .field { font-weight: 600; font-size: 12.5px; color: var(--chore); margin-top: 10px; }
 
 .empty-brief { padding: 20px; border-radius: 12px; border: 1.5px dashed var(--line-2); color: var(--muted); }
 
@@ -382,6 +405,9 @@ details.later li:hover { background: var(--hover); }
   .chair .ff { font-size: 21px; }
   .panel { padding: 16px 16px 18px; }
   .diff { grid-template-columns: 1fr; }
+  /* On a phone the popover is a sheet along the bottom, so it never runs off the side. */
+  .pop, .fix.end .pop { position: fixed; top: auto; left: 16px; right: 16px; bottom: 16px; width: auto; max-width: none; padding-top: 0; }
+  .chores-cmd { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .pulse { animation: none; }
