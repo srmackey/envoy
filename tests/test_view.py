@@ -212,7 +212,7 @@ def test_overlay_inbox_and_disagreement(tmp_path: Path, home: Path) -> None:
     assert detail["inbox_count"] == 1
     snap = snapshot(root, home, "coast")
     health = _health(snap, "coast/ledger")
-    assert health["state"] == "needs_you"
+    assert health["signals"] == ["inbox", "drift"]
     assert health["drift"] is True
     assert health["inbox"] == 1
     card = next(item for item in snap["attention"] if item.get("address") == "coast/ledger" and "text" not in item)
@@ -274,6 +274,23 @@ def test_age_and_forefront_dates_are_not_signals(tmp_path: Path, home: Path) -> 
     assert _health(later, "harbor/dock")["state"] == "up_to_date"
 
 
+def test_a_waiting_letter_is_listed_but_does_not_color_the_chair(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path)
+    for board in (root / "FOCUS.md", root / "harbor" / "FOCUS.md"):
+        board.write_text("# FOCUS\nupdated: 2026-10-03\n\n## This week\n", encoding="utf-8")
+    status_put(root, home, "ledger", "Count the tide", ["counted yesterday"], ["count again"], [], repo="main · clean")
+    _local(root / "ledger", "Count the tide")
+    inbox = root / "ledger" / "inbox"
+    inbox.mkdir()
+    (inbox / "letter.md").write_text("hello\n", encoding="utf-8")
+    snap = snapshot(root, home, "coast")
+    health = _health(snap, "coast/ledger")
+    assert (health["state"], health["inbox"]) == ("up_to_date", 1)
+    card = next(card for card in snap["attention"] if card.get("address") == "coast/ledger")
+    assert (card["class"], card["kinds"]) == ("notice", ["inbox"])
+    assert card["fixes"][0]["command"] == "process the inbox"
+
+
 def test_a_chair_that_owes_a_sitrep_and_has_none_is_housekeeping(tmp_path: Path, home: Path) -> None:
     root = _coast(tmp_path)
     snap = snapshot(root, home, "coast")
@@ -328,6 +345,7 @@ def test_every_signal_has_a_class_and_a_fix(tmp_path: Path, home: Path) -> None:
 
     letters = next(card for card in snap["attention"] if card.get("address") == "coast/ledger" and "text" not in card)
     assert letters["kinds"] == ["inbox"]
+    assert letters["class"] == "notice"
     assert letters["fixes"][0] == {
         "kind": "inbox", "by": "you", "command": "process the inbox",
         "folder": "coast/ledger", "step": "Say process the inbox in coast/ledger.",

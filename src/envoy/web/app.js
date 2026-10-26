@@ -33,10 +33,12 @@ const icon = {
   check: svg(html`<circle cx="12" cy="12" r="9" /><polyline points="8 12.5 11 15.5 16 9.5" />`),
   branch: svg(html`<circle cx="6" cy="5" r="2" /><circle cx="6" cy="19" r="2" /><circle cx="18" cy="7" r="2" /><path d="M6 7v10" /><path d="M18 9c0 5-7 4-11 8" />`),
   clock: svg(html`<circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" />`),
-  flag: svg(html`<path d="M5 21V4" /><path d="M5 4h11l-2 4 2 4H5" />`),
   file: svg(html`<path d="M6 3h8l4 4v14H6z" /><polyline points="14 3 14 7 18 7" />`),
   split: svg(html`<path d="M12 3v18" /><rect x="3" y="6" width="18" height="12" rx="2" />`),
   menu: svg(html`<line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />`),
+  info: svg(html`<circle cx="12" cy="12" r="9" /><line x1="12" y1="11" x2="12" y2="16.5" /><line x1="12" y1="7.5" x2="12" y2="7.6" />`),
+  copy: svg(html`<rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h8" />`),
+  desk: svg(html`<path d="M3 10h18" /><path d="M5 10v9" /><path d="M19 10v9" /><path d="M8 10V6h8v4" />`),
 };
 
 // Words ----------------------------------------------------------------------
@@ -45,19 +47,27 @@ const STATE = {
   current: { text: "matches its Forefront", tone: "good" },
   accounted: { text: "in its trail", tone: "good" },
   satisfied: { text: "done per repo", tone: "good" },
-  unaccounted: { text: "not in its sitrep", tone: "drift" },
+  unaccounted: { text: "not in its sitrep", tone: "needs_you" },
   no_trail: { text: "no sitrep", tone: "quiet" },
 };
 
+// A chair's state and each signal are named for the state, not the deficit.
+const HEALTH = {
+  up_to_date: "Up to date",
+  housekeeping: "Housekeeping",
+  needs_you: "Needs you",
+  no_publish: "Doesn't publish",
+};
+
 const KIND = {
-  overdue: "Overdue",
-  due: "Due soon",
-  mail: "Mail",
+  date_passed: "Board date passed",
+  waiting: "Left by a settle pass",
   inbox: "Inbox",
-  unaccounted: "Not in sitrep",
-  drift: "Files disagree",
-  always_on: "Always-on gap",
-  stale: "Stale",
+  unaccounted: "Not in its sitrep",
+  always_on: "No line this week",
+  drift: "Sitrep differs",
+  mail: "Unseen mail",
+  no_sitrep: "No sitrep yet",
 };
 
 const FIELD = {
@@ -77,13 +87,12 @@ function shortDate(iso) {
   return day.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+// A coming date is plain state. Only a date that has passed takes a color.
 function dueText(days, due) {
   if (days === null || days === undefined) return null;
-  if (days < -1) return { text: `overdue ${-days} days`, tone: "danger" };
-  if (days === -1) return { text: "overdue since yesterday", tone: "danger" };
-  if (days === 0) return { text: "due today", tone: "warn" };
-  if (days === 1) return { text: "due tomorrow", tone: "warn" };
-  if (days <= 7) return { text: `due in ${days} days`, tone: "warn" };
+  if (days < 0) return { text: `date passed, ${shortDate(due)}`, tone: "needs_you" };
+  if (days === 0) return { text: "due today", tone: "quiet" };
+  if (days === 1) return { text: "due tomorrow", tone: "quiet" };
   return { text: `due ${shortDate(due)}`, tone: "quiet" };
 }
 
@@ -96,21 +105,24 @@ function ageText(days) {
 
 function reason(item, kind) {
   switch (kind) {
-    case "overdue":
-    case "due":
-      return dueText(item.days, item.due)?.text;
-    case "mail":
-      return plural(item.mail, "unseen note");
+    case "date_passed":
+      return item.due ? `dated ${shortDate(item.due)}` : "";
+    case "waiting": {
+      const day = item.passes?.[0]?.date;
+      return plural(item.waiting, "item") + (day ? ` from the pass on ${shortDate(day)}` : "");
+    }
     case "inbox":
-      return plural(item.inbox, "letter") + " waiting";
+      return plural(item.inbox, "letter") + " in the inbox";
     case "unaccounted":
       return `not in ${item.title || item.node}'s sitrep`;
-    case "drift":
-      return "local file and sitrep differ";
     case "always_on":
       return "always-on, no line this week";
-    case "stale":
-      return item.reason === "past_date" ? "Forefront date has passed" : `sitrep ${item.age_days} days old`;
+    case "drift":
+      return "published sitrep differs from the status file";
+    case "mail":
+      return plural(item.mail, "note") + " not yet seen";
+    case "no_sitrep":
+      return "owes a sitrep and has none";
     default:
       return "";
   }
@@ -165,7 +177,7 @@ function Fmt({ text }) {
 // Small pieces -------------------------------------------------------------------
 
 function Dot({ state }) {
-  const label = { fresh: "Up to date", stale: "Stale", drift: "Files disagree", silent: "No sitrep" }[state] || state;
+  const label = HEALTH[state] || state;
   return html`<span class=${"dot " + state} title=${label} role="img" aria-label=${label}></span>`;
 }
 
@@ -188,6 +200,56 @@ function NodeChip({ item, go }) {
   if (!item.node) return null;
   const open = item.address ? () => go(item.address) : undefined;
   return html`<${Chip} onClick=${open} title=${item.address || item.node}>${item.title || item.node}<//>`;
+}
+
+function Copy({ text }) {
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    if (!done) return undefined;
+    const timer = setTimeout(() => setDone(false), 1500);
+    return () => clearTimeout(timer);
+  }, [done]);
+  const copy = async (event) => {
+    event.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(text);
+      setDone(true);
+      return;
+    } catch {}
+    // Some embedded browsers refuse the clipboard API; a selected field still copies.
+    const field = document.createElement("textarea");
+    field.value = text;
+    field.setAttribute("readonly", "");
+    field.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+    document.body.append(field);
+    field.select();
+    try {
+      setDone(document.execCommand("copy"));
+    } catch {}
+    field.remove();
+  };
+  return html`<button type="button" class="copy" onClick=${copy} title=${`Copy ${text}`}>${done ? icon.check : icon.copy}<span>${done ? "Copied" : "Copy"}</span></button>`;
+}
+
+// How a signal clears. It opens on hover, on keyboard focus, and on a tap, and
+// stays open while the pointer is over it, so the command can be copied.
+function Fix({ fixes, end = false }) {
+  if (!fixes?.length) return null;
+  const onKey = (event) => {
+    if (event.key !== "Escape") return;
+    event.stopPropagation();
+    document.activeElement?.blur();
+  };
+  return html`<span class=${"fix" + (end ? " end" : "")} onKeyDown=${onKey}>
+    <button type="button" class="fix-i" aria-label="How this clears" onClick=${(e) => e.stopPropagation()}>${icon.info}</button>
+    <span class="pop"><span class="pop-box">
+      ${fixes.map((fix) => html`<span class="pop-fix" key=${fix.kind}>
+        <span class="pop-who">${KIND[fix.kind] || fix.kind} · ${fix.by === "you" ? "yours" : "an agent can clear it"}</span>
+        <span class="pop-step">${fix.step}</span>
+        ${fix.command ? html`<span class="pop-cmd"><code>${fix.command}</code><${Copy} text=${fix.command} /></span>` : null}
+      </span>`)}
+    </span></span>
+  </span>`;
 }
 
 // A block opened by hand stays open until the next hide-all. The eye in the header
@@ -291,6 +353,7 @@ function TreeRow({ node, depth, selected, collapsed, toggle, go }) {
       <${Dot} state=${h.state} />
       <span class="name">${node.title || node.name}</span>
       ${node.sensitive ? html`<span class="lock" title="Sensitive">${icon.lock}</span>` : null}
+      ${h.desk ? html`<span class="badge" title=${plural(h.desk, "file") + " on the desk"}>${icon.desk}${h.desk}</span>` : null}
       ${h.mail ? html`<span class="badge" title=${plural(h.mail, "unseen mail note")}>${icon.mail}${h.mail}</span>` : null}
       ${h.inbox ? html`<span class="badge" title=${plural(h.inbox, "inbox letter")}>${icon.inbox}${h.inbox}</span>` : null}
     </div>
@@ -311,10 +374,10 @@ function Side({ snap, selected, collapsed, toggle, go, open }) {
       </ul>
     </div>
     <div class="legend">
-      <span><${Dot} state="fresh" />Up to date</span>
-      <span><${Dot} state="stale" />Stale</span>
-      <span><${Dot} state="drift" />Files disagree</span>
-      <span><${Dot} state="silent" />No sitrep</span>
+      <span><${Dot} state="up_to_date" />Up to date</span>
+      <span><${Dot} state="housekeeping" />Housekeeping</span>
+      <span><${Dot} state="needs_you" />Needs you</span>
+      <span><${Dot} state="no_publish" />Doesn't publish</span>
     </div>
     <div class="keys"><span><kbd>j</kbd> <kbd>k</kbd> move</span><span><kbd>h</kbd> up</span><span><kbd>/</kbd> jump</span><span><kbd>s</kbd> sensitive</span></div>
   </aside>`;
@@ -322,16 +385,25 @@ function Side({ snap, selected, collapsed, toggle, go, open }) {
 
 // Main --------------------------------------------------------------------------------
 
-// A need on the open chair's own card names the chair already, so the row drops it.
+// A card on the open chair's own card names the chair already, so the row drops it.
 function NeedRow({ item, go, own, showSensitive }) {
   const what = item.text
     ? html`<${Veil} on=${item.sensitive} show=${showSensitive} inline><${Fmt} text=${item.text} /><//>`
     : own ? null : item.title || item.node;
-  const body = html`<span class="kind">${item.kinds.map((kind) => KIND[kind]).join(" · ")}</span>
+  const left = item.items?.length
+    ? html`<span class="left">${item.items.slice(0, 3).map((entry, i) => html`<span class="left-line" key=${i}>
+        <${Fmt} text=${(entry.heading ? entry.heading + ": " : "") + (entry.line || "")} />
+        ${entry.surface ? html`<span class="quiet"> · ${entry.surface}</span>` : null}
+      </span>`)}</span>`
+    : null;
+  const body = html`<span class="kind">${item.kinds.map((kind) => KIND[kind] || kind).join(" · ")}</span>
     ${what ? html`<span class="what">${what}</span>` : null}
-    <span class="detail">${cardDetail(item, own)}</span>`;
-  if (own || !item.address) return html`<div class=${"need " + item.kind}>${body}</div>`;
-  return html`<button type="button" class=${"need " + item.kind} onClick=${() => go(item.address)}>${body}</button>`;
+    <span class="detail">${cardDetail(item, own)}</span>
+    ${left}`;
+  const main = own || !item.address
+    ? html`<div class="need-main">${body}</div>`
+    : html`<button type="button" class="need-main" onClick=${() => go(item.address)}>${body}</button>`;
+  return html`<div class=${"need " + item.class}>${main}<${Fix} fixes=${item.fixes} end /></div>`;
 }
 
 function Needs({ items, go, own = false, cap = 0, showSensitive }) {
@@ -345,6 +417,24 @@ function Needs({ items, go, own = false, cap = 0, showSensitive }) {
     ${cap && items.length > cap
       ? html`<button type="button" class="more" onClick=${() => setAll(!all)}>${all ? "Show fewer" : `Show all ${items.length}`}</button>`
       : null}`;
+}
+
+// Everything an agent can clear under this nexus is one line, one command.
+function Chores({ chores, go, showSensitive }) {
+  const [open, setOpen] = useState(false);
+  if (!chores?.count) return null;
+  const fix = chores.fix || {};
+  const count = chores.count === 1 ? "1 chair needs" : `${chores.count} chairs need`;
+  return html`<div class="chores">
+    <div class="chores-line">
+      <button type="button" class="chores-toggle" aria-expanded=${open} onClick=${() => setOpen(!open)}>
+        <${Dot} state="housekeeping" /><span>${count} housekeeping</span>${open ? icon.down : icon.right}
+      </button>
+      ${fix.command ? html`<span class="chores-cmd"><code>${fix.command}</code><${Copy} text=${fix.command} /></span>` : null}
+    </div>
+    <p class="chores-where">${fix.step}</p>
+    ${open ? html`<${Needs} items=${chores.cards} go=${go} showSensitive=${showSensitive} />` : null}
+  </div>`;
 }
 
 function BoardItem({ item, next, go, showSensitive }) {
@@ -396,7 +486,7 @@ function Value({ value }) {
 function Drift({ brief }) {
   const names = brief.differs.map((field) => FIELD[field] || field);
   return html`<div class="drift-box">
-    <p>The local file and the published sitrep differ in <strong>${names.join(", ")}</strong>. A settle run in that chair republishes the sitrep.</p>
+    <p>The published sitrep differs from the status file in <strong>${names.join(", ")}</strong>. A settle run in this chair republishes it from the file.</p>
     ${brief.differs.map((field) => html`<div key=${field}>
       <div class="field">${FIELD[field] || field}</div>
       <div class="diff">
@@ -428,7 +518,7 @@ function Steps({ title, items, ordered = false }) {
   return html`<h3>${title}</h3>${ordered ? html`<ol>${rows}</ol>` : html`<ul class="plain">${rows}</ul>`}`;
 }
 
-// The open chair leads: its Forefront, its chips, what on it needs you, then its record.
+// The open chair leads: its Forefront, its state, what on it needs you, then its record.
 function ChairCard({ brief, go, showSensitive }) {
   if (!brief || brief.ok === false) {
     return html`<section class="panel chair"><p class="quiet">${brief?.error === "forbidden" ? "That chair is outside this nexus." : "Nothing selected."}</p></section>`;
@@ -436,20 +526,26 @@ function ChairCard({ brief, go, showSensitive }) {
   const doc = brief.local || brief.published;
   const h = brief.health || {};
   const mine = brief.attention || [];
+  const fixes = Object.fromEntries((brief.housekeeping || []).flatMap((card) => card.fixes.map((fix) => [fix.kind, fix])));
+  const chore = (kind, glyph, text) => html`<span class="chip chore" key=${kind}>${glyph}${text}<${Fix} fixes=${fixes[kind] ? [fixes[kind]] : []} /></span>`;
   let source = "From the published sitrep. No local file.";
   if (brief.local && brief.published) source = brief.diverged ? "Showing the local file. The published sitrep differs." : "Local file and published sitrep match.";
   else if (brief.local) source = "From the local file. Nothing is published.";
   const chips = [
-    h.repo ? html`<${Chip} key="repo" tone=${h.dirty ? "warn" : "good"} title=${h.repo}>${icon.branch}<span class="clip">${h.repo}</span><//>` : null,
-    doc ? html`<${Chip} key="age" tone=${h.stale ? "warn" : "quiet"} title=${h.updated || ""}>${icon.clock}${ageText(h.age_days)}<//>` : null,
-    h.drift ? html`<${Chip} key="drift" tone="drift">${icon.split}files disagree<//>` : null,
-    brief.inbox_count ? html`<${Chip} key="inbox" tone="good">${icon.inbox}${plural(brief.inbox_count, "letter")}<//>` : null,
-    h.mail ? html`<${Chip} key="mail" tone="good">${icon.mail}${plural(h.mail, "unseen note")}<//>` : null,
+    h.repo ? html`<${Chip} key="repo" title=${h.repo}>${icon.branch}<span class="clip">${h.repo}</span><//>` : null,
+    doc ? html`<${Chip} key="age" tone="quiet" title=${h.updated || ""}>${icon.clock}${ageText(h.age_days)}<//>` : null,
+    h.desk ? html`<${Chip} key="desk" title="Files on the desk">${icon.desk}${h.desk} on the desk<//>` : null,
+    h.drift ? chore("drift", icon.split, "sitrep differs") : null,
+    h.mail ? chore("mail", icon.mail, plural(h.mail, "unseen note")) : null,
+    (h.signals || []).includes("no_sitrep") ? chore("no_sitrep", icon.file, "no sitrep yet") : null,
   ].filter(Boolean);
+  const empty = h.state === "no_publish"
+    ? "This chair does not publish a sitrep."
+    : "No sitrep yet. This chair has not published one, and there is no local status file.";
   const body = html`
     ${doc
       ? html`<p class="ff"><${Fmt} text=${doc.forefront || "No Forefront set."} /></p>`
-      : html`<div class="empty-brief">No sitrep yet. This chair has not published one, and there is no local status file.</div>`}
+      : html`<div class="empty-brief">${empty}</div>`}
     ${chips.length ? html`<div class="chips">${chips}</div>` : null}
     ${mine.length
       ? html`<h3>Needs you <span class="count">${mine.length}</span></h3>
@@ -473,7 +569,8 @@ function ChairCard({ brief, go, showSensitive }) {
   </section>`;
 }
 
-// The nexus in view stays in sight, smaller: its board and whatever else under it needs you.
+// The nexus in view stays in sight, smaller: what an agent can tidy, its board,
+// and whatever else under it needs you.
 function NexusCard({ snap, go, showSensitive }) {
   const nexus = snap.nexus || { address: snap.view, name: snap.view };
   const self = snap.chair === snap.view;
@@ -489,6 +586,7 @@ function NexusCard({ snap, go, showSensitive }) {
         ? html`<p class="nexus-ff"><${Veil} on=${nexus.sensitive} show=${showSensitive} inline><${Fmt} text=${nexus.forefront} /><//></p>`
         : null}
     </header>
+    <${Chores} chores=${snap.housekeeping} go=${go} showSensitive=${showSensitive} />
     <${Board} board=${snap.board} next=${snap.next} go=${go} showSensitive=${showSensitive} />
     <div class="block">
       <h3 class="section-title">Needs you ${items.length ? html`<span class="count">${items.length}</span>` : null}</h3>

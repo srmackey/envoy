@@ -45,13 +45,14 @@ _FRONTMATTER = re.compile(r"\A---\s*\n(.*?)\n---[ \t]*(?:\n|\Z)", re.DOTALL)
 _BULLET = re.compile(r"^[-*]\s+([A-Za-z_ ]+):\s*(.*)$")
 _WAIT_FIELDS = ("surface", "line", "why")
 
-# Who clears each signal. Needs you comes first; the order within a class is urgency.
+# Who clears each signal, in order of urgency. A notice is the principal's too, but
+# it is plain state: it is listed with its fix and never colors a chair.
 _CLASS = {
     "date_passed": "needs_you",
     "waiting": "needs_you",
-    "inbox": "needs_you",
     "unaccounted": "needs_you",
     "always_on": "needs_you",
+    "inbox": "notice",
     "drift": "housekeeping",
     "mail": "housekeeping",
     "no_sitrep": "housekeeping",
@@ -114,7 +115,7 @@ def snapshot(
     _rank_chairs(index, cards)
     under = {entry["address"] for entry in _walk([index[view]])} if view in index else set()
     here = [card for card in cards if _within(card, under)]
-    needs = [card for card in here if card["class"] == "needs_you"]
+    needs = [card for card in here if card["class"] in ("needs_you", "notice")]
     chores = [card for card in here if card["class"] == "housekeeping"]
     briefing = node_detail(root, home, view, selected.address)
     if briefing.get("ok"):
@@ -644,7 +645,7 @@ def _rank_chairs(index: dict[str, dict[str, Any]], cards: list[dict[str, Any]]) 
     """A chair's dot shows the most urgent class among the cards about it."""
     for card in cards:
         entry = index.get(card.get("address") or card.get("board") or "")
-        if entry is None:
+        if entry is None or card["class"] not in _RANK:
             continue
         health = entry["health"]
         if _RANK[card["class"]] > _RANK.get(health["state"], 0):
