@@ -11,7 +11,7 @@ Keep your AI projects properly apart and each one works blind. It can't see what
 - **Messages without peeking.** A project posts a note; its line of work passes it on. No project writes into another project's files; mail goes through the nexus above them.
 - **One ranked board.** Each line of work keeps a short, ranked list of what matters this week. Every chair under it sees the same board.
 - **Drift caught for you.** Each project publishes a short status report, and Envoy checks it against the board. A project whose report doesn't reflect its board line gets flagged.
-- **A dashboard of what needs you.** A local page shows every chair's health, plus what needs you now: lines overdue or due within seven days, drift, unseen mail, waiting letters, and reports that disagree with their own files.
+- **A dashboard that says who clears what.** A local page shows each chair as up to date, as housekeeping an agent can clear on its own, or as needing you. A board date that has passed, or a line a report doesn't reflect, needs you. A report that disagrees with its own file, or a note nobody has seen, is housekeeping. Waiting letters are listed without color. Every signal says how it clears, with the command ready to copy.
 - **Privacy where you need it.** A sensitive chair's content stays hidden on the page until you show it, and mail crossing its walls stops at a gate for you to decide.
 
 ## A day with it
@@ -22,7 +22,7 @@ Monday you rank the Clients board: ship Client A's report by Thursday, then revi
 
 Tuesday, working in Client A, the agent finds a question only Client B can answer. It doesn't open Client B. It posts a mail note and leaves the letter in the Clients inbox, one level up. Only the Clients chair delivers letters down. Because Client B is sensitive, the note waits at a gate until you choose to deliver, hold, or set it aside.
 
-Wednesday morning you open the dashboard. Client A's report is due tomorrow, so it shows under what needs you. Client B published a status report last week that still says nothing about the contract, so Envoy flags that line as unaccounted. Its details stay hidden until you click to show them.
+Wednesday morning you open the dashboard. The board line for Client A's report says it is due tomorrow, in plain text. Client B published a status report last week that still says nothing about the contract, so that line shows as needing you, with the step that clears it. Its details stay hidden until you click to show them. Friday the report date passes with the line still on the board, and it turns amber.
 
 ## Part of Domain Prime
 
@@ -59,7 +59,7 @@ uv run envoy view --root /path/to/bulletin
 
 While the server runs, it also serves a page on `127.0.0.1` port `4173`, so there is nothing else to start. Every host starts its own Envoy: the first one serves the page, and the others take over if it exits. `envoy view` serves the page by itself when no host is running Envoy.
 
-The page leads with the chair you open: its Forefront, what on it needs you, and its record. The nexus it sits in stays beside it with its board and whatever else needs you there, and every chair's health is in one tree. It reads the board, the roster, published sitreps, and each chair's local status and pending inbox files. Viewing counts unseen mail notes and does not mark them seen. `/` jumps to a chair, `j` and `k` move, `s` shows sensitive chairs.
+The page leads with the chair you open: its Forefront, what on it needs you, and its record. The nexus it sits in stays beside it with one line for the housekeeping under it, its board, and whatever else needs you there, and every chair's state is in one tree. It reads the board, the roster, published sitreps, each chair's local status, pending inbox, and desk files, and, inside a Domain Prime tree, what a settle pass left in `settle-wait.md`. Viewing counts unseen mail notes and does not mark them seen. `/` jumps to a chair, `j` and `k` move, `s` shows sensitive chairs.
 
 | Variable | Role |
 |---|---|
