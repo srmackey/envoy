@@ -133,6 +133,8 @@ svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none;
 .tool:hover { border-color: var(--line-2); color: var(--ink); }
 .tool[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
 .live { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+/* Reserve room for "checked just now" so the ticking label never shifts the header. */
+.live .text { min-width: 15ch; font-variant-numeric: tabular-nums; }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--fresh); box-shadow: 0 0 0 0 var(--fresh); animation: pulse 2.4s ease-out infinite; }
 .live.off .pulse { background: var(--muted); animation: none; }
 @keyframes slide-in {

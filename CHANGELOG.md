@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The "checked" label in the page header keeps a steady width, so the buttons beside it no longer shift each time it ticks.
+
 ## [0.5.0] - 2026-10-25
 
 ### Changed
