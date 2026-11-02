@@ -12,7 +12,7 @@ from envoy.mapfile import open_chair
 from envoy.notes_store import mail_outstanding, note_list
 from envoy.status_store import status_get
 
-LINE_RE = re.compile(r"\*\*(.+?)\*\*\s*·\s*due:\s*(\S+)\s*·\s*node:\s*(\S+)")
+LINE_RE = re.compile(r"\*\*(.+?)\*\*\s*·\s*due:\s*(\S+)\s*·\s*node:\s*([^\s·]+)(?:\s*·\s*(waiting)\b)?")
 _WORD = re.compile(r"[0-9A-Za-z]+(?:-[0-9A-Za-z]+)*")
 # One side may add this many words. Past that, the line has changed.
 _FEW_WORDS = 4
@@ -66,11 +66,14 @@ def _parse_items(block: str) -> list[dict[str, Any]]:
     for match in LINE_RE.finditer(block):
         due_raw = match.group(2)
         node_raw = match.group(3)
-        items.append({
+        item = {
             "text": match.group(1),
             "due": None if due_raw == "none" else due_raw,
             "node": None if node_raw == "none" else node_raw,
-        })
+        }
+        if match.group(4):
+            item["waiting"] = True
+        items.append(item)
     return items
 
 
@@ -149,6 +152,9 @@ def _reconcile(
             got = status_get(root, home, chair=chair, node=node)
             document = got.get("document") if got.get("ok") else None
             state, forefront = _state(item["text"], document)
+            # The principal is waiting on this line. The chair cannot carry it.
+            if state == "unaccounted" and item.get("waiting"):
+                state = "awaiting"
             rows.append({
                 "text": item["text"],
                 "node": node,

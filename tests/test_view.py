@@ -138,6 +138,21 @@ def test_snapshot_reads_tree_board_and_next_move(tmp_path: Path, home: Path) -> 
     assert "mail" not in snap
 
 
+def test_a_line_the_principal_waits_on_does_not_need_them(tmp_path: Path, home: Path) -> None:
+    root = _coast(tmp_path)
+    (root / "FOCUS.md").write_text(
+        "# FOCUS\nupdated: 2026-10-03\n\n## This week\n\n"
+        "1. **Hear back on the ledger** · due: none · node: ledger · waiting\n",
+        encoding="utf-8",
+    )
+    status_put(root, home, "ledger", "Count the tide", ["counted"], [], [])
+    snap = snapshot(root, home, "coast", today=date(2026, 10, 3))
+    line = snap["board"]["sections"][-1]["this_week"][0]
+    assert line["state"] == "awaiting"
+    assert not [card for card in snap["attention"] if card.get("address") == "coast/ledger"]
+    assert _health(snap, "coast/ledger")["state"] != "needs_you"
+
+
 def test_a_node_is_viewed_from_its_nexus(tmp_path: Path, home: Path) -> None:
     root = _coast(tmp_path)
     snap = snapshot(root, home, "ledger")

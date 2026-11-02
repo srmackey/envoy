@@ -294,3 +294,55 @@ def test_node_reads_its_nexus_board(tmp_path: Path, home: Path) -> None:
     assert any(name and name.endswith("ledger") for name in names)
     missing = {item.casefold() for item in parent["always_on_missing"]}
     assert missing == {"skiff"}
+
+
+WAITING = NOW.replace(
+    "1. **Chart the harbor** · due: none · node: harbor",
+    "1. **Chart the harbor** · due: none · node: harbor · waiting",
+)
+
+
+def test_waiting_mark_is_read_off_the_line(root: Path, home: Path) -> None:
+    _seed(root)
+    (root / "FOCUS.md").write_text(WAITING, encoding="utf-8")
+    week = now_view(root, home, chair="harbor")["now"]["this_week"]
+    assert week[0] == {"text": "Chart the harbor", "due": None, "node": "harbor", "waiting": True}
+    assert "waiting" not in week[1]
+
+
+def test_waiting_line_the_trail_does_not_carry_is_awaiting(root: Path, home: Path) -> None:
+    _seed(root)
+    (root / "FOCUS.md").write_text(WAITING, encoding="utf-8")
+    status_put(
+        root, home, chair="harbor",
+        forefront="Moor the river",
+        where_i_left_off=["worked on docks"],
+        next_steps=[],
+        open_loops=[],
+    )
+    got = now_view(root, home, chair="nexus")
+    row = next(r for r in got["reconcile"] if r["text"] == "Chart the harbor")
+    assert row["state"] == "awaiting"
+
+
+def test_waiting_line_the_trail_carries_stays_accounted(root: Path, home: Path) -> None:
+    _seed(root)
+    (root / "FOCUS.md").write_text(WAITING, encoding="utf-8")
+    status_put(
+        root, home, chair="harbor",
+        forefront="Moor the river",
+        where_i_left_off=["Chart the harbor is with the pilot"],
+        next_steps=[],
+        open_loops=[],
+    )
+    got = now_view(root, home, chair="nexus")
+    row = next(r for r in got["reconcile"] if r["text"] == "Chart the harbor")
+    assert row["state"] == "accounted"
+
+
+def test_waiting_line_with_no_sitrep_is_still_a_setup_gap(root: Path, home: Path) -> None:
+    _seed(root)
+    (root / "FOCUS.md").write_text(WAITING, encoding="utf-8")
+    got = now_view(root, home, chair="nexus")
+    row = next(r for r in got["reconcile"] if r["text"] == "Chart the harbor")
+    assert row["state"] == "no_trail"
