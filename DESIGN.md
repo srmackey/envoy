@@ -59,6 +59,7 @@ Normalize whitespace. Board substance is the one-line text of the ranked item. T
 - `accounted` if the board substance appears in the joined Where I left off text.
 - `satisfied` if it appears in the published `repo:` line. Not a flag.
 - `no_trail` if A has no sitrep (flag: setup gap).
+- `awaiting` if the line ends with the `· waiting` mark. The operator is waiting on it, so the chair has nothing to carry. Not a flag.
 - `unaccounted` otherwise (flag).
 - Lines with `node: none` are not reconciled.
 

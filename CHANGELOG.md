@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- A board line can end with `· waiting` when you are waiting on it, as in `1. **Hear back on the quote** · due: none · node: shop · waiting`. If the chair's sitrep does not carry the line, reconcile reports it as `awaiting` instead of `unaccounted`, and the page shows it as "waiting on it" without asking anything of you. The line stays until you change it.
+
 ## [0.5.1] - 2026-10-26
 
 ### Fixed

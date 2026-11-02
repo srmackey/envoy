@@ -48,6 +48,7 @@ const STATE = {
   accounted: { text: "in its trail", tone: "good" },
   satisfied: { text: "done per repo", tone: "good" },
   unaccounted: { text: "not in its sitrep", tone: "needs_you" },
+  awaiting: { text: "waiting on it", tone: "quiet" },
   no_trail: { text: "no sitrep", tone: "quiet" },
 };
 
