@@ -1,8 +1,8 @@
 # Envoy
 
-**Version 0.4**
+**Version 0.7**
 
-Envoy is a local MCP server for a bulletin: membership, published status, and mail notes. Files on disk stay the record for the map, the board, local status, and inbox letters. The vault holds published sitreps and mail notes. Envoy is the bus and the vault. It is not a wiki, not standing guidance, not chair memory, and not the nexus chair. Session briefs are not this server.
+Envoy is a local MCP server for a bulletin: membership, published status, mail notes, and one agenda. Files on disk stay the record for the map, the board, local status, and inbox letters. The vault holds published sitreps, mail notes, and agenda rows. Envoy is the bus and the vault. It is not a wiki, not standing guidance, not chair memory, and not the nexus chair. Session briefs are not this server.
 
 Someone who has never sat here should be able to read this file and see how the pieces fit. Locked implementer detail lives in chair overlay, not here.
 
@@ -20,8 +20,9 @@ The bulletin root is `ENVOY_ROOT` (or `--root`). Required. When that folder has 
 | Published status | That nexus's `_envoy/status/<folder basename>.json`. The document's `node` is the address | That node, via status tools |
 | Mail letters | `inbox/` files | Node to the nexus inbox; nexus into a node inbox after the gate |
 | Mail notes | That nexus's `_envoy/mail/<id>.json`. A note between two nexuses is stored in both | Chairs via note tools |
+| Agenda | The root nexus's `_envoy/agenda/<id>.json`, whatever chair posts. Without `nexus.md`, `ENVOY_HOME/agenda/` | Chairs via agenda tools |
 
-`MAP.md` lives on disk at the bulletin root when `nexus.md` is absent. Envoy does not keep a second copy of the roster. When `nexus.md` is present, `map_list` reads that nexus's nodes table. A child nexus is named by its own name. A node is `nexus/node`. `map_upsert` updates status and triggers on that same file, for that nexus's own rows. Published sitreps and mail notes live only in the vault.
+`MAP.md` lives on disk at the bulletin root when `nexus.md` is absent. Envoy does not keep a second copy of the roster. When `nexus.md` is present, `map_list` reads that nexus's nodes table. A child nexus is named by its own name. A node is `nexus/node`. `map_upsert` updates status and triggers on that same file, for that nexus's own rows. Published sitreps, mail notes, and agenda rows live only in the vault.
 
 ## Map
 
@@ -29,7 +30,7 @@ The bulletin root is `ENVOY_ROOT` (or `--root`). Required. When that folder has 
 
 Each row has `name`, `inbox`, `description`, and `status` (`active` / `parked` / `superseded`). `parked` means do not route new work there. `superseded` keeps the name addressable.
 
-`project.yaml` is the node's hardcopy: `category` and `services` live there. `services` is the opt-in list (`status`, `mail`). Absent list means not subscribed. Leftover `syos` is ignored.
+`project.yaml` is the node's hardcopy: `category` and `services` live there. `services` is the opt-in list (`status`, `mail`, `agenda`). Absent list means not subscribed. Leftover `syos` is ignored.
 
 The intended read is always `map_list`. A node caller gets the stored rows. A nexus caller gets the same rows joined with each chair's `project.yaml` when that file exists.
 
@@ -37,11 +38,25 @@ Folder for a map `name`: when `nexus.md` is absent, the bulletin root for `nexus
 
 ## Services
 
-A node opts in. Later message types are more services, not more fields on these two.
+A node opts in. A new message type is a new service, not more fields on an existing one.
 
 **Status.** One vault document per subscriber. Publish overwrites. Not a queue, not acked. The local digest is the node's record. The vault document is the sitrep the parent reads. Ordinary chairs publish the whole digest. Discreet chairs publish a thin sitrep. Subscriber articles: `provisions/articles/methodology/envoy-status.md` and the discreet variant on the chair's map, not in this repo's extract list.
 
 **Mail.** The note is a bell. The letter is the inbox file. Nodes never write another node's inbox. The nexus chair is the only deliverer. Subscriber article: `provisions/articles/methodology/envoy-mail.md`.
+
+**Agenda.** One calendar and one task list for the whole install, kept in the root nexus's store. A post from any chair, at any depth, lands there, and the author is the calling chair's address. A row with a `due` date is on the calendar; `until` makes it a window, both days inclusive. A row without a date is a task. Giving a task a date moves it onto the calendar, and clearing the date puts it back at the bottom of the task list.
+
+Who may edit is enforced on the write. Any subscribed chair may post. A chair may change or close only the rows it posted. The root nexus may change or close any row, and only the root reorders the task list. A new task lands at the bottom; the poster does not pick a place in line. Calendar items order by date. Reading never closes a row; closing is its own act, and a closed row stays on disk out of every list.
+
+A list is the whole install, or only the rows the calling chair posted. The root asking for its own rows gets its own posts, not every row. Calendar items fall into buckets by the local date, each item counted once in the earliest bucket its span touches:
+
+- overdue: the last day is before today, and an overdue item is overdue only
+- due soon: today or tomorrow
+- before Sunday: after tomorrow, through this Sunday (today, when today is Sunday)
+- next week: the Monday after this Sunday, through the Sunday after that
+- later: anything after that
+
+`next` is the single soonest open item, overdue first. The agenda is not the board. `FOCUS.md` stays the operator's ranked week, and a chair posting to the agenda does not touch it.
 
 ## Chair identity
 
@@ -101,6 +116,11 @@ The page is static files in the package with Preact vendored, no build step, and
 | `note_gate` | root nexus | Set `gate` / `gate_note` on a mail note |
 | `note_remove` | author | Delete the note |
 | `now_view` | any | Read `FOCUS.md` for the nexus this chair sits in. A nexus also receives living NOW for its direct chairs |
+| `agenda_post` | agenda subscriber | Post a calendar item or a task. Author is forced to `chair` |
+| `agenda_update` | author or root nexus | Change a row's text or dates |
+| `agenda_close` | author or root nexus | Close a row |
+| `agenda_reorder` | root nexus | Move named tasks to the top of the task list |
+| `agenda_list` | any | The calendar by bucket and the task list in order, whole install or own rows |
 
 Every tool result carries a chair-scoped mail notice: `mail_unacked_for_me` and `mail_acked_authored`.
 
@@ -109,7 +129,6 @@ Success includes `"ok": true`. Failures include `"ok": false` and `"error": <tok
 ## Out of scope
 
 - Addresses with more than one slash
-- Extra services beyond status and mail
 - Filtering or redacting published bodies
 - Remote multi-user auth
 - Session-brief tools on this server

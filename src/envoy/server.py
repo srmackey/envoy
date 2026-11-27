@@ -7,6 +7,11 @@ from typing import Any
 
 from fastmcp import FastMCP
 
+from envoy.agenda_store import agenda_close as agenda_close_fn
+from envoy.agenda_store import agenda_list as agenda_list_fn
+from envoy.agenda_store import agenda_post as agenda_post_fn
+from envoy.agenda_store import agenda_reorder as agenda_reorder_fn
+from envoy.agenda_store import agenda_update as agenda_update_fn
 from envoy.mapfile import map_list as map_list_fn
 from envoy.mapfile import map_upsert as map_upsert_fn
 from envoy.mapfile import open_chair
@@ -22,7 +27,7 @@ from envoy.status_store import status_put as status_put_fn
 from envoy.view_server import keep_page_up
 
 INSTRUCTIONS = """\
-Envoy is a local bulletin MCP. Files stay the record for the roster, FOCUS.md, local STATUS, and inbox letters. Envoy stores published sitreps and mail notes. Every call sends chair. When nexus.md is at the bulletin root, chair is an address: the nexus's own name, or nexus/node. Each nexus folder holds that nexus's records in _envoy/. The record name stays the folder basename. chair nexus still names the root nexus. A bare name that matches one node is that node. When nexus.md is absent, chair is nexus or a MAP.md name and records stay in ENVOY_HOME. Session living NOW is now_view. map_list is the roster API. Do not poll sibling STATUS files once this server is live. Session briefs live on the chair-memory store, not here.
+Envoy is a local bulletin MCP. Files stay the record for the roster, FOCUS.md, local STATUS, and inbox letters. Envoy stores published sitreps, mail notes, and the agenda. Every call sends chair. When nexus.md is at the bulletin root, chair is an address: the nexus's own name, or nexus/node. Each nexus folder holds that nexus's records in _envoy/. The record name stays the folder basename. chair nexus still names the root nexus. A bare name that matches one node is that node. When nexus.md is absent, chair is nexus or a MAP.md name and records stay in ENVOY_HOME. Session living NOW is now_view. map_list is the roster API. The agenda is one calendar and one task list for the whole install, kept on the root nexus; agenda_list reads it. Do not poll sibling STATUS files once this server is live. Session briefs live on the chair-memory store, not here.
 """
 
 mcp = FastMCP("Envoy", instructions=INSTRUCTIONS)
@@ -195,6 +200,55 @@ def now_view(chair: str) -> dict[str, Any]:
     """Read FOCUS.md for this chair's nexus. A nexus also receives living NOW and records an ack of shown on notes intended for it."""
     root, home = _ctx()
     return _result(chair, now_view_fn(root, home, chair))
+
+
+@mcp.tool(annotations=_CREATE)
+def agenda_post(
+    chair: str,
+    text: str,
+    due: str | None = None,
+    until: str | None = None,
+) -> dict[str, Any]:
+    """Post one agenda row. With due (YYYY-MM-DD) it is a calendar item; until makes it a window, both days inclusive. Without due it is a task at the bottom of the list. Author is forced to chair."""
+    root, home = _ctx()
+    return _result(chair, agenda_post_fn(root, home, chair, text, due=due, until=until))
+
+
+@mcp.tool(annotations=_WRITE)
+def agenda_update(
+    chair: str,
+    item_id: str,
+    text: str | None = None,
+    due: str | None = None,
+    until: str | None = None,
+) -> dict[str, Any]:
+    """Change an agenda row this chair authored. The root nexus may change any row. Omitted fields stay. An empty due clears the date and puts the row at the bottom of the task list; an empty until drops the window."""
+    root, home = _ctx()
+    return _result(
+        chair,
+        agenda_update_fn(root, home, chair, item_id, text=text, due=due, until=until),
+    )
+
+
+@mcp.tool(annotations=_WRITE)
+def agenda_close(chair: str, item_id: str) -> dict[str, Any]:
+    """Close an agenda row this chair authored. The root nexus may close any row. Reading never closes a row."""
+    root, home = _ctx()
+    return _result(chair, agenda_close_fn(root, home, chair, item_id))
+
+
+@mcp.tool(annotations=_WRITE)
+def agenda_reorder(chair: str, order: list[str]) -> dict[str, Any]:
+    """Root nexus only. Move the named tasks to the top of the task list in that order. The rest keep their order below."""
+    root, home = _ctx()
+    return _result(chair, agenda_reorder_fn(root, home, chair, order))
+
+
+@mcp.tool(annotations=_READ)
+def agenda_list(chair: str, scope: str = "all") -> dict[str, Any]:
+    """Read the agenda. scope all is the whole install; scope mine is only rows this chair posted. Calendar items come in buckets (overdue, due_soon, before_sunday, next_week, later), each counted once; next is the single soonest. Tasks come in list order."""
+    root, home = _ctx()
+    return _result(chair, agenda_list_fn(root, home, chair, scope))
 
 
 def run(root: Path, home: Path) -> None:
