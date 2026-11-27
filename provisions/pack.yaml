@@ -1,9 +1,11 @@
 id: envoy
 name: Envoy
 kind: theme
-version: 0.2.3
+version: 0.3.0
 articles:
   - id: methodology/envoy-status
     path: provisions/articles/methodology/envoy-status.md
   - id: methodology/envoy-mail
     path: provisions/articles/methodology/envoy-mail.md
+  - id: methodology/envoy-agenda
+    path: provisions/articles/methodology/envoy-agenda.md
