@@ -56,7 +56,7 @@ A list is the whole install, or only the rows the calling chair posted. The root
 - next week: the Monday after this Sunday, through the Sunday after that
 - later: anything after that
 
-`next` is the single soonest open item, overdue first. The agenda is not the board. `FOCUS.md` stays the operator's ranked week, and a chair posting to the agenda does not touch it.
+`next` is the single soonest open item, overdue first. The agenda is not the board. `FOCUS.md` stays the operator's ranked week, and a chair posting to the agenda does not touch it. Subscriber article: `provisions/articles/methodology/envoy-agenda.md`.
 
 ## Chair identity
 
