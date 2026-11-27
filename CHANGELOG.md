@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-26
+
 ### Added
 
 - Public contract 0.3.0 adds `methodology/envoy-agenda`, the subscriber article for the agenda service: one line of install-wide counts on the first turn, how to post and close rows, and how to read the whole agenda or only the calling chair's rows.
