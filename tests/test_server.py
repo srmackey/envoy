@@ -22,6 +22,11 @@ REQUIRED = {
     "note_gate",
     "note_remove",
     "now_view",
+    "agenda_post",
+    "agenda_update",
+    "agenda_close",
+    "agenda_reorder",
+    "agenda_list",
 }
 
 
@@ -30,7 +35,7 @@ def test_server_module_exports_run() -> None:
     assert server.mcp.name == "Envoy"
 
 
-def test_mcp_exposes_ten_tools() -> None:
+def test_mcp_exposes_fifteen_tools() -> None:
     tools = asyncio.run(server.mcp.list_tools())
     names = {getattr(tool, "name", None) for tool in tools}
     assert names == REQUIRED

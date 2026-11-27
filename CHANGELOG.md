@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-26
+
+### Added
+
+- Agenda, a third service beside status and mail: one calendar and one task list for the whole install, kept in the root nexus's store. Five tools: `agenda_post`, `agenda_update`, `agenda_close`, `agenda_reorder`, and `agenda_list`. A chair opts in with `agenda` in its `project.yaml` services. Any subscribed chair may post. A chair may change or close only its own rows; the root nexus may change or close any row, and only the root reorders tasks. `agenda_list` returns calendar items in overdue, due soon, before Sunday, next week, and later buckets, the single soonest item, and tasks in order, for the whole install or only the calling chair's rows.
+
 ## [0.6.0] - 2026-11-02
 
 ### Added

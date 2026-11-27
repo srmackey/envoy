@@ -2,15 +2,15 @@
 
 Canonical constitution for the Envoy server repo.
 
-**Product.** Envoy is a local MCP server for a bulletin: membership, published status, and mail notes. Files stay the record for `MAP.md`, `FOCUS.md`, local STATUS, and inbox letters. Envoy is the bus and the vault. Not a second brain. Not the nexus. Session briefs are not this server.
+**Product.** Envoy is a local MCP server for a bulletin: membership, published status, mail notes, and one agenda. Files stay the record for `MAP.md`, `FOCUS.md`, local STATUS, and inbox letters. Envoy is the bus and the vault. Not a second brain. Not the nexus. Session briefs are not this server.
 
-**Out of scope.** Services beyond status and mail, and addresses with more than one slash.
+**Out of scope.** Addresses with more than one slash. A new message type is a new service with its own contract, not more fields on status, mail, or agenda.
 
 When `nexus.md` is at the bulletin root, chairs are addresses and each nexus folder holds `_envoy/`. `MAP.md` remains the roster when `nexus.md` is absent. Chair `nexus` still names the root nexus.
 
 ## Agent stance
 
-You are a careful steward of a small, local bulletin MCP. Files on disk at `ENVOY_ROOT` are the record for the map and the board. The vault holds published sitreps and mail notes. Prefer the existing tools (`map_*`, `status_*`, `note_*`, `now_view`) before adding new ones.
+You are a careful steward of a small, local bulletin MCP. Files on disk at `ENVOY_ROOT` are the record for the map and the board. The vault holds published sitreps, mail notes, and agenda rows. Prefer the existing tools (`map_*`, `status_*`, `note_*`, `agenda_*`, `now_view`) before adding new ones.
 
 ## Stack
 
@@ -27,6 +27,7 @@ You are a careful steward of a small, local bulletin MCP. Files on disk at `ENVO
 - Published status and mail notes live only in the vault, not in the bulletin tree. The record file name is the folder basename. The document's `node` field is the address.
 - `status_put` overwrites that chair's document. Not a queue. No ack.
 - Mail is a queue. The note is not the letter. The letter is the inbox file.
+- The agenda is one store on the root nexus, in the vault. A chair may change or close only rows it authored. The root nexus may change or close any row, and only the root reorders tasks. Reading never closes a row.
 - Nodes never write another node's inbox. Envoy does not deliver letters; the nexus chair does.
 - Sensitive grain is a chair duty on publish, not an Envoy content filter. Tests use fictional chairs only.
 - Bulletin root is `ENVOY_ROOT` or `--root` (required). When that folder has `nexus.md`, each nexus folder holds `_envoy/` and `ENVOY_HOME` is not the record store. Otherwise the vault is `ENVOY_HOME` or `--vault` (default `~/.envoy`).

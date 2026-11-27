@@ -12,6 +12,7 @@ Keep your AI projects properly apart and each one works blind. It can't see what
 - **One ranked board.** Each line of work keeps a short, ranked list of what matters this week. Every chair under it sees the same board.
 - **Drift caught for you.** Each project publishes a short status report, and Envoy checks it against the board. A project whose report doesn't reflect its board line gets flagged.
 - **A dashboard that says who clears what.** A local page shows each chair as up to date, as housekeeping an agent can clear on its own, or as needing you. A board date that has passed, or a line a report doesn't reflect, needs you. A report that disagrees with its own file, or a note nobody has seen, is housekeeping. Waiting letters are listed without color. Every signal says how it clears, with the command ready to copy.
+- **One calendar, one task list.** Any project can post a dated item or a todo to a single agenda for the whole system. Dates fall into overdue, due soon, before Sunday, and next week. Only the top of the tree reorders the todos or edits another project's post.
 - **Privacy where you need it.** A sensitive chair's content stays hidden on the page until you show it, and mail crossing its walls stops at a gate for you to decide.
 
 ## A day with it
@@ -35,9 +36,9 @@ Envoy is one of four engines in [Domain Prime](https://github.com/srmackey/domai
 
 ## How it works
 
-Envoy gives an AI client a local bulletin: who belongs, what each one last published, and the mail notes between them.
+Envoy gives an AI client a local bulletin: who belongs, what each one last published, the mail notes between them, and one shared agenda.
 
-It is not a wiki, not standing guidance, and not session briefs. It does not deliver inbox letters. Files on disk stay the record. The vault holds published sitreps and mail notes.
+It is not a wiki, not standing guidance, and not session briefs. It does not deliver inbox letters. Files on disk stay the record. The vault holds published sitreps, mail notes, and agenda rows.
 
 A clone can run it against any bulletin root. Wire it into a larger system, or use it on its own.
 
@@ -72,7 +73,7 @@ Install: [`install/README.md`](install/README.md). The block is [`install/mcp.js
 
 ## Tools
 
-Ten tools. The list and what each one changes are in [docs/tools.md](docs/tools.md).
+Fifteen tools. The list and what each one changes are in [docs/tools.md](docs/tools.md).
 
 Each tool sets `readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint`. None are open to the network. `note_list` writes an ack of shown the first time the intended chair lists a note, so it is not read-only. A nexus `now_view` lists that same mail and records the same ack. A node `now_view` only reads the board. The page counts unseen notes and does not record the ack.
 
@@ -85,7 +86,7 @@ How it is structured: [`DESIGN.md`](DESIGN.md). What moved: [`CHANGELOG.md`](CHA
 - Transport is stdio. The host starts a local process as the user who launched it.
 - The page listens on `127.0.0.1` only. It reads the bulletin and the vault. It does not write them.
 - Bulletin files live at `ENVOY_ROOT`. Map tools read and write `MAP.md` there. `now_view` reads `FOCUS.md`. The server reads a node's identity file and local status when a tool asks for them.
-- Published sitreps and mail notes are JSON. Without `nexus.md` they live under `ENVOY_HOME` (default `~/.envoy`). With `nexus.md`, each nexus folder holds them in `_envoy/`.
+- Published sitreps, mail notes, and agenda rows are JSON. Without `nexus.md` they live under `ENVOY_HOME` (default `~/.envoy`). With `nexus.md`, each nexus folder holds them in `_envoy/`.
 - It does not write inbox letters. A letter is a file some other program puts there.
 - It does not use the network and it does not take a credential.
 
